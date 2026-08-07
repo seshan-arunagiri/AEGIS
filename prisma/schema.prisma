@@ -73,4 +73,8 @@ model AppSettings {
   /// If true, uses Groq's Llama 3.3 70B to verify Medium-risk results and reduce false positives.
   /// Requires GROQ_API_KEY environment variable.
   aiVerificationEnabled Boolean @default(false)
+
+  /// If true, enables intent analysis to classify the semantic purpose of scanned content
+  /// (e.g. data exfiltration, privilege escalation) beyond raw pattern matching.
+  intentAnalysisEnabled Boolean @default(false)
 }
