@@ -20,6 +20,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { runFullScan } from "@/lib/scanner";
 import { logScan } from "@/lib/logger/logger";
 import { verifyWithAI } from "@/lib/aiVerification";
+import { analyzeIntent } from "@/lib/aiIntentAnalysis/aiIntentAnalysis";
 import type { RiskLevel } from "@/types/types";
 import {
   getMockGithubResponse,
@@ -63,6 +64,14 @@ function deriveStatus(riskLevel: RiskLevel): "Blocked" | "Allowed" {
   return riskLevel === "Medium" || riskLevel === "Critical"
     ? "Blocked"
     : "Allowed";
+}
+
+/** Convert a 0-100 score to the same four-tier bands as riskEngine. */
+function scoreToRiskLevel(score: number): RiskLevel {
+  if (score <= 25) return "Safe";
+  if (score <= 50) return "Low";
+  if (score <= 75) return "Medium";
+  return "Critical";
 }
 
 /** Dispatch to the appropriate mock content generator. */
@@ -135,17 +144,23 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     // 0. Fetch Global Settings
     const settings = await prisma.appSettings.findUnique({ where: { id: 1 } });
-    const strictMode = settings?.strictMode ?? false;
-    const learningMode = settings?.learningMode ?? false;
-    const aiVerificationEnabled = settings?.aiVerificationEnabled ?? false;
+    const strictMode             = settings?.strictMode             ?? false;
+    const learningMode           = settings?.learningMode           ?? false;
+    const aiVerificationEnabled  = settings?.aiVerificationEnabled  ?? false;
+    const intentAnalysisEnabled  = settings?.intentAnalysisEnabled  ?? false;
 
     // 1. Fetch content (use provided content if exists, else mock).
     const content = typeof customContent === "string" ? customContent : getMockContent(tool, scenario);
 
-    // 2. Run the full pipeline: detect → score → sanitise.
-    const result = runFullScan(content, { strictMode });
+    // 2. Run regex pipeline and (optionally) intent analysis in parallel.
+    //    runFullScan is synchronous, so wrap in a resolved promise to allow
+    //    Promise.all to pair it cleanly with the async analyzeIntent call.
+    const [result, intentResult] = await Promise.all([
+      Promise.resolve(runFullScan(content, { strictMode })),
+      intentAnalysisEnabled ? analyzeIntent(content) : Promise.resolve(null),
+    ]);
 
-    // 2.5. AI Verification (if enabled and risk level is Medium or Critical)
+    // 2.5. AI Verification (if enabled and regex level is Medium or Critical)
     if (aiVerificationEnabled && (result.riskLevel === "Medium" || result.riskLevel === "Critical")) {
       const aiResult = await verifyWithAI(result.originalContent, result.detectedPatterns);
       if (aiResult) {
@@ -153,24 +168,27 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       }
     }
 
-    // 3. Determine middleware decision.
-    let status = deriveStatus(result.riskLevel);
-    
-    // Override status if Learning Mode is enabled
+    // 3. Compute final score: highest of regex score and intent score.
+    //    One malicious signal is enough — we don't dilute with a clean score.
+    const regexScore       = result.riskScore;
+    const intentRiskScore  = intentResult?.intentRiskScore  ?? null;
+    const intentReasoning  = intentResult?.reasoning        ?? null;
+    const finalScore       = Math.max(regexScore, intentRiskScore ?? 0);
+    const finalRiskLevel   = scoreToRiskLevel(finalScore);
+
+    // 4. Determine middleware decision based on the final (merged) risk level.
+    let status = deriveStatus(finalRiskLevel);
     if (learningMode) {
       status = "Allowed";
     }
 
-    // 4. Persist to SQLite — fire-and-forget style: we await it so the log
-    //    is written before we respond, but a logging failure does NOT cause
-    //    the scan response to fail. The scan result is still returned to the
-    //    client even if the DB write fails (e.g. DB locked, disk full).
+    // 5. Persist to DB — fire-and-forget style.
     try {
       await logScan({
         toolName: tool,
         scenario,
-        riskScore: result.riskScore,
-        riskLevel: result.riskLevel,
+        riskScore: finalScore,
+        riskLevel: finalRiskLevel,
         detectedPatterns: result.detectedPatterns,
         originalContent: result.originalContent,
         sanitizedContent: result.sanitizedContent,
@@ -178,12 +196,23 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         aiVerdict: result.aiVerification ? JSON.stringify(result.aiVerification) : undefined,
       });
     } catch (logErr) {
-      // Log the error server-side but don't surface it to the client.
       console.error("[AgentShield /api/scan] logScan failed:", logErr);
     }
 
-    // 5. Return the full ScanResult as JSON.
-    return NextResponse.json(result, { status: 200 });
+    // 6. Return extended ScanResult.
+    //    Existing fields are preserved for backward compatibility.
+    //    New intent fields are null when intentAnalysisEnabled is false.
+    return NextResponse.json(
+      {
+        ...result,
+        regexScore,
+        intentRiskScore,
+        intentReasoning,
+        finalScore,
+        finalRiskLevel,
+      },
+      { status: 200 }
+    );
   } catch (err) {
     console.error("[AgentShield /api/scan] Unexpected error:", err);
     return NextResponse.json(
