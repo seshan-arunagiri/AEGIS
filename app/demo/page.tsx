@@ -44,6 +44,7 @@ export default function DemoPage() {
   const [fileContent, setFileContent] = useState<string>("");
   const [repoUrl, setRepoUrl] = useState<string>("");
   const [pasteContent, setPasteContent] = useState<string>("");
+  const [scanDuration, setScanDuration] = useState<number | null>(null);
 
   // Reset results when tool or scenario changes
   const handleToolChange = useCallback((t: DemoTool) => {
@@ -58,6 +59,8 @@ export default function DemoPage() {
 
   const handleRunScan = useCallback(async () => {
     setScanState({ status: "loading", result: null, repoResult: null, errorMessage: null });
+    setScanDuration(null);
+    const t0 = Date.now();
 
     try {
       let response: Response;
@@ -97,7 +100,10 @@ export default function DemoPage() {
       }
 
       const data = await response.json();
-      
+
+      const elapsed = Date.now() - t0;
+      setScanDuration(elapsed);
+
       // Check if this is a repo scan result (has 'files' array)
       if (inputMode === "github" && "files" in data) {
         setScanState({ status: "done", result: null, repoResult: data as RepoScanResult, errorMessage: null });
@@ -308,9 +314,11 @@ export default function DemoPage() {
                   className="text-xs text-zinc-600"
                 >
                   {scanState.repoResult ? (
-                    <>Scan completed &mdash; {scanState.repoResult.filesScanned} file{scanState.repoResult.filesScanned !== 1 ? "s" : ""} scanned</>
+                    <>Scan completed &mdash; {scanState.repoResult.filesScanned} file{scanState.repoResult.filesScanned !== 1 ? "s" : ""} scanned
+                      {scanDuration !== null && <> in {scanDuration < 1000 ? `${scanDuration}ms` : `${(scanDuration / 1000).toFixed(1)}s`}</>}
+                    </>
                   ) : (
-                    <>Scan completed in &lt;1ms &mdash; {scanState.result?.detectedPatterns.length} pattern{scanState.result?.detectedPatterns.length !== 1 ? "s" : ""} detected</>
+                    <>Scan completed{scanDuration !== null && <> in {scanDuration < 1000 ? `${scanDuration}ms` : `${(scanDuration / 1000).toFixed(1)}s`}</>} &mdash; {scanState.result?.detectedPatterns.length} pattern{scanState.result?.detectedPatterns.length !== 1 ? "s" : ""} detected</>
                   )}
                 </motion.p>
               )}

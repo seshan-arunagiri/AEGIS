@@ -261,18 +261,40 @@ export function ResultPanel({ result, isLoading }: ResultPanelProps) {
                     </span>
                   </div>
 
-                  {/* AI Intent Analysis row — amber highlight when it drove the final score up */}
+                  {/* AI Intent Analysis card — reasoning is the centrepiece */}
                   <div
                     className={cn(
-                      "flex flex-col gap-1.5 rounded-lg border px-3 py-2",
+                      "flex flex-col gap-3 rounded-lg border px-3 py-3",
                       aiCaughtIt
                         ? "border-amber-500/30 bg-amber-500/[0.06]"
-                        : "border-white/[0.05] bg-white/[0.02]"
+                        : "border-sky-500/20 bg-sky-500/[0.04]"
                     )}
                   >
+                    {/* Header row: label + optional AI Catch badge + score */}
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-1.5">
-                        <span className="text-[11px] text-zinc-400">AI Intent Analysis</span>
+                        {/* Brain icon */}
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                          stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"
+                          strokeLinejoin="round"
+                          className={cn(aiCaughtIt ? "text-amber-400" : "text-sky-400")}
+                          aria-hidden="true"
+                        >
+                          <path d="M9.5 2a2.5 2.5 0 0 1 5 0v.5" />
+                          <path d="M15 4.5A4.5 4.5 0 0 1 19.5 9v.5" />
+                          <path d="M4.5 9A4.5 4.5 0 0 1 9 4.5" />
+                          <path d="M2 14.5A6.5 6.5 0 0 0 9.5 21" />
+                          <path d="M22 14.5A6.5 6.5 0 0 1 14.5 21" />
+                          <path d="M12 21v-8" />
+                          <path d="M8 13H6" />
+                          <path d="M18 13h-2" />
+                        </svg>
+                        <span className={cn(
+                          "text-[11px] font-semibold",
+                          aiCaughtIt ? "text-amber-300" : "text-sky-300"
+                        )}>
+                          AI Intent Analysis
+                        </span>
                         {aiCaughtIt && (
                           <span className="rounded-full border border-amber-500/40 bg-amber-500/10 px-1.5 py-px text-[9px] font-semibold uppercase tracking-wide text-amber-400">
                             AI Catch
@@ -288,10 +310,27 @@ export function ResultPanel({ result, isLoading }: ResultPanelProps) {
                         )}
                       </span>
                     </div>
+
+                    {/* Reasoning blockquote — always shown, this is the trust signal */}
                     {intentReason && (
-                      <p className="text-[10px] leading-relaxed text-zinc-500">
-                        {intentReason}
-                      </p>
+                      <div className={cn(
+                        "flex gap-2.5 rounded-md border-l-2 py-2 pl-3 pr-2",
+                        aiCaughtIt
+                          ? "border-amber-400/50 bg-amber-500/[0.05]"
+                          : "border-sky-400/40 bg-sky-500/[0.04]"
+                      )}>
+                        {/* Open-quote mark */}
+                        <span className={cn(
+                          "select-none font-serif text-2xl leading-none",
+                          aiCaughtIt ? "text-amber-500/50" : "text-sky-500/40"
+                        )} aria-hidden="true">&ldquo;</span>
+                        <p className={cn(
+                          "text-[12px] font-medium italic leading-relaxed",
+                          aiCaughtIt ? "text-amber-100/80" : "text-zinc-200/80"
+                        )}>
+                          {intentReason}
+                        </p>
+                      </div>
                     )}
                   </div>
                 </motion.div>
