@@ -2,8 +2,18 @@ import { NextRequest, NextResponse } from "next/server";
 import { runFullScan } from "@/lib/scanner";
 import { logScan } from "@/lib/logger/logger";
 import { verifyWithAI } from "@/lib/aiVerification";
+import { analyzeIntent } from "@/lib/aiIntentAnalysis/aiIntentAnalysis";
 import { prisma } from "@/lib/db/prisma";
 import type { RiskLevel } from "@/types/types";
+
+// ─── Risk helpers ──────────────────────────────────────────────────────────────
+
+function scoreToRiskLevel(score: number): RiskLevel {
+  if (score <= 25) return "Safe";
+  if (score <= 50) return "Low";
+  if (score <= 75) return "Medium";
+  return "Critical";
+}
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
@@ -84,7 +94,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           { status: 404 }
         );
       } else if (repoRes.status === 403) {
-        const rateLimitMsg = process.env.GITHUB_TOKEN 
+        const rateLimitMsg = process.env.GITHUB_TOKEN
           ? "GitHub API rate limit reached. Wait a few minutes or use a different token."
           : "GitHub API rate limit reached. Add a GITHUB_TOKEN to increase the limit, or wait a few minutes.";
         return NextResponse.json({ error: rateLimitMsg }, { status: 403 });
@@ -103,7 +113,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     if (!treeRes.ok) {
       if (treeRes.status === 403) {
-        const rateLimitMsg = process.env.GITHUB_TOKEN 
+        const rateLimitMsg = process.env.GITHUB_TOKEN
           ? "GitHub API rate limit reached. Wait a few minutes or use a different token."
           : "GitHub API rate limit reached. Add a GITHUB_TOKEN to increase the limit, or wait a few minutes.";
         return NextResponse.json({ error: rateLimitMsg }, { status: 403 });
@@ -135,16 +145,17 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    // Fetch Global Settings
+    // Fetch global settings
     const settings = await prisma.appSettings.findUnique({ where: { id: 1 } });
-    const strictMode = settings?.strictMode ?? false;
-    const learningMode = settings?.learningMode ?? false;
+    const strictMode            = settings?.strictMode            ?? false;
+    const learningMode          = settings?.learningMode          ?? false;
     const aiVerificationEnabled = settings?.aiVerificationEnabled ?? false;
+    const intentAnalysisEnabled = settings?.intentAnalysisEnabled ?? false;
 
-    // Scan each file individually
+    // Scan each file: fetch content, then run regex + intent in parallel
     const fileResults = [];
-    let highestRiskScore = 0;
-    let highestRiskLevel: RiskLevel = "Safe";
+    let highestFinalScore: number = 0;
+    let highestFinalLevel: RiskLevel = "Safe";
 
     for (const file of textFiles) {
       try {
@@ -158,37 +169,52 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           if (fileData.encoding === "base64" && typeof fileData.content === "string") {
             const b64 = fileData.content.replace(/\n/g, "");
             const decoded = Buffer.from(b64, "base64").toString("utf8");
-            
-            // Scan this file
-            const scanResult = runFullScan(decoded, { strictMode });
-            
-            // AI Verification (if enabled and risk level is Medium or Critical)
+
+            // Run regex pipeline and intent analysis in parallel
+            const [scanResult, intentResult] = await Promise.all([
+              Promise.resolve(runFullScan(decoded, { strictMode })),
+              intentAnalysisEnabled ? analyzeIntent(decoded) : Promise.resolve(null),
+            ]);
+
+            // AI Verification (if enabled and regex level is Medium or Critical)
             if (aiVerificationEnabled && (scanResult.riskLevel === "Medium" || scanResult.riskLevel === "Critical")) {
               const aiResult = await verifyWithAI(decoded, scanResult.detectedPatterns);
               if (aiResult) {
                 scanResult.aiVerification = aiResult;
               }
             }
-            
+
+            // Compute per-file final score
+            const regexScore      = scanResult.riskScore;
+            const intentRiskScore = intentResult?.intentRiskScore ?? null;
+            const intentReasoning = intentResult?.reasoning        ?? null;
+            const finalScore      = Math.max(regexScore, intentRiskScore ?? 0);
+            const finalRiskLevel  = scoreToRiskLevel(finalScore);
+
             fileResults.push({
-              filePath: file.path,
-              riskScore: scanResult.riskScore,
-              riskLevel: scanResult.riskLevel,
-              detectedPatterns: scanResult.detectedPatterns,
-              originalContent: scanResult.originalContent,
-              sanitizedContent: scanResult.sanitizedContent,
-              aiVerification: scanResult.aiVerification
+              filePath:         file.path,
+              regexScore,
+              intentRiskScore,
+              intentReasoning,
+              finalScore,
+              finalRiskLevel,
+              // legacy fields kept for backward compat
+              riskScore:            finalScore,
+              riskLevel:            finalRiskLevel,
+              detectedPatterns:     scanResult.detectedPatterns,
+              originalContent:      scanResult.originalContent,
+              sanitizedContent:     scanResult.sanitizedContent,
+              aiVerification:       scanResult.aiVerification,
             });
 
-            // Track highest risk
-            if (scanResult.riskScore > highestRiskScore) {
-              highestRiskScore = scanResult.riskScore;
-              highestRiskLevel = scanResult.riskLevel;
+            // Track the worst-case file using the merged final score
+            if (finalScore > highestFinalScore) {
+              highestFinalScore = finalScore;
+              highestFinalLevel = finalRiskLevel;
             }
           }
         } else if (fileRes.status === 403) {
-          // Rate limit hit during file fetching
-          const rateLimitMsg = process.env.GITHUB_TOKEN 
+          const rateLimitMsg = process.env.GITHUB_TOKEN
             ? "GitHub API rate limit reached while fetching files. Wait a few minutes or use a different token."
             : "GitHub API rate limit reached while fetching files. Add a GITHUB_TOKEN to increase the limit, or wait a few minutes.";
           return NextResponse.json({ error: rateLimitMsg }, { status: 403 });
@@ -206,19 +232,21 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    // Determine middleware decision based on highest risk
-    let status: "Blocked" | "Allowed" = (highestRiskLevel === "Medium" || highestRiskLevel === "Critical") ? "Blocked" : "Allowed";
+    // Determine middleware decision based on highest final risk
+    let status: "Blocked" | "Allowed" = (highestFinalLevel === "Medium" || highestFinalLevel === "Critical")
+      ? "Blocked"
+      : "Allowed";
     if (learningMode) {
       status = "Allowed";
     }
 
-    // Persist to SQLite (log the overall scan)
+    // Persist aggregate log entry
     try {
       await logScan({
         toolName: "github",
         scenario: "live-repo",
-        riskScore: highestRiskScore,
-        riskLevel: highestRiskLevel,
+        riskScore: highestFinalScore,
+        riskLevel: highestFinalLevel,
         detectedPatterns: fileResults.flatMap(f => f.detectedPatterns),
         originalContent: `Scanned ${fileResults.length} files`,
         sanitizedContent: `Scanned ${fileResults.length} files`,
@@ -228,22 +256,29 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       console.error("[Aegis /api/scan-repo] logScan failed:", logErr);
     }
 
-    // Return per-file results
+    // Return per-file results with intent fields included
     return NextResponse.json({
       files: fileResults.map(f => ({
-        filePath: f.filePath,
-        riskScore: f.riskScore,
-        riskLevel: f.riskLevel,
+        filePath:              f.filePath,
+        regexScore:            f.regexScore,
+        intentRiskScore:       f.intentRiskScore,
+        intentReasoning:       f.intentReasoning,
+        finalScore:            f.finalScore,
+        finalRiskLevel:        f.finalRiskLevel,
+        // legacy aliases
+        riskScore:             f.finalScore,
+        riskLevel:             f.finalRiskLevel,
         detectedPatternsCount: f.detectedPatterns.length,
-        detectedPatterns: f.detectedPatterns,
-        originalContent: f.originalContent,
-        sanitizedContent: f.sanitizedContent
+        detectedPatterns:      f.detectedPatterns,
+        originalContent:       f.originalContent,
+        sanitizedContent:      f.sanitizedContent,
       })),
-      overallRiskScore: highestRiskScore,
-      overallRiskLevel: highestRiskLevel,
-      filesScanned: fileResults.length,
-      status
+      overallRiskScore: highestFinalScore,
+      overallRiskLevel: highestFinalLevel,
+      filesScanned:     fileResults.length,
+      status,
     }, { status: 200 });
+
   } catch (err) {
     console.error("[Aegis /api/scan-repo] Unexpected error:", err);
     return NextResponse.json({ error: "Internal server error. Please try again." }, { status: 500 });

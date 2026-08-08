@@ -2,14 +2,30 @@ import { NextRequest, NextResponse } from "next/server";
 import { runFullScan } from "@/lib/scanner";
 import { logScan } from "@/lib/logger/logger";
 import { verifyWithAI } from "@/lib/aiVerification";
+import { analyzeIntent } from "@/lib/aiIntentAnalysis/aiIntentAnalysis";
 import { prisma } from "@/lib/db/prisma";
+import pLimit from "p-limit";
 import type { RiskLevel, BatchScanRequest, BatchScanResult } from "@/types/types";
+
+// ─── Risk helpers ──────────────────────────────────────────────────────────────
+
+function scoreToRiskLevel(score: number): RiskLevel {
+  if (score <= 25) return "Safe";
+  if (score <= 50) return "Low";
+  if (score <= 75) return "Medium";
+  return "Critical";
+}
+
+// Cap concurrent Groq calls at 5 to stay within the free-tier limit of
+// 30 req/min. At 5 concurrent we can process a 30-file batch in ~6 rounds
+// (each round ≤ 2 s), well within a 60-second window.
+const GROQ_CONCURRENCY = 5;
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     // Auth check: require x-aegis-token header matching AEGIS_CI_TOKEN env var
     const authToken = request.headers.get("x-aegis-token");
-    
+
     if (!process.env.AEGIS_CI_TOKEN) {
       return NextResponse.json(
         { error: "Server configuration error: AEGIS_CI_TOKEN not set" },
@@ -69,48 +85,81 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     // Fetch global settings
     const settings = await prisma.appSettings.findUnique({ where: { id: 1 } });
-    const strictMode = settings?.strictMode ?? false;
-    const learningMode = settings?.learningMode ?? false;
+    const strictMode            = settings?.strictMode            ?? false;
+    const learningMode          = settings?.learningMode          ?? false;
     const aiVerificationEnabled = settings?.aiVerificationEnabled ?? false;
+    const intentAnalysisEnabled = settings?.intentAnalysisEnabled ?? false;
 
-    // Scan each file individually
-    const fileResults = [];
-    let highestRiskScore = 0;
-    let highestRiskLevel: RiskLevel = "Safe";
+    // p-limit instance: at most GROQ_CONCURRENCY files processed at once.
+    // Each file task is async (awaits up to 2 Groq calls), so this bounds
+    // the number of in-flight Groq requests to 2 × GROQ_CONCURRENCY = 10
+    // (one intent + one verification per file in the worst case).
+    const limit = pLimit(GROQ_CONCURRENCY);
 
-    for (const file of files) {
-      const scanResult = runFullScan(file.content, { strictMode });
-      
-      // AI Verification (if enabled and risk level is Medium or Critical)
-      if (aiVerificationEnabled && (scanResult.riskLevel === "Medium" || scanResult.riskLevel === "Critical")) {
-        const aiResult = await verifyWithAI(file.content, scanResult.detectedPatterns);
-        if (aiResult) {
-          scanResult.aiVerification = aiResult;
-        }
-      }
-      
-      fileResults.push({
-        path: file.path,
-        riskScore: scanResult.riskScore,
-        riskLevel: scanResult.riskLevel,
-        detectedPatternsCount: scanResult.detectedPatterns.length,
-        detectedPatterns: scanResult.detectedPatterns,
-        aiVerification: scanResult.aiVerification
-      });
+    // Scan all files concurrently within the concurrency cap
+    const fileResults = await Promise.all(
+      files.map((file) =>
+        limit(async () => {
+          // Run regex pipeline and intent analysis in parallel
+          const [scanResult, intentResult] = await Promise.all([
+            Promise.resolve(runFullScan(file.content, { strictMode })),
+            intentAnalysisEnabled ? analyzeIntent(file.content) : Promise.resolve(null),
+          ]);
 
-      // Track highest risk
-      if (scanResult.riskScore > highestRiskScore) {
-        highestRiskScore = scanResult.riskScore;
-        highestRiskLevel = scanResult.riskLevel;
+          // AI Verification (if enabled and regex level is Medium or Critical)
+          if (
+            aiVerificationEnabled &&
+            (scanResult.riskLevel === "Medium" || scanResult.riskLevel === "Critical")
+          ) {
+            const aiResult = await verifyWithAI(file.content, scanResult.detectedPatterns);
+            if (aiResult) {
+              scanResult.aiVerification = aiResult;
+            }
+          }
+
+          // Compute per-file final score
+          const regexScore      = scanResult.riskScore;
+          const intentRiskScore = intentResult?.intentRiskScore ?? null;
+          const intentReasoning = intentResult?.reasoning        ?? null;
+          const finalScore      = Math.max(regexScore, intentRiskScore ?? 0);
+          const finalRiskLevel  = scoreToRiskLevel(finalScore);
+
+          return {
+            path:                  file.path,
+            regexScore,
+            intentRiskScore,
+            intentReasoning,
+            finalScore,
+            finalRiskLevel,
+            // legacy aliases — BatchScanResult consumers that read riskScore/riskLevel
+            // will see the merged final value, not the raw regex score
+            riskScore:             finalScore,
+            riskLevel:             finalRiskLevel,
+            detectedPatternsCount: scanResult.detectedPatterns.length,
+            detectedPatterns:      scanResult.detectedPatterns,
+            aiVerification:        scanResult.aiVerification,
+          };
+        })
+      )
+    );
+
+    // Aggregate: highest finalScore across all files
+    let highestFinalScore: number = 0;
+    let highestFinalLevel: RiskLevel = "Safe";
+
+    for (const r of fileResults) {
+      if (r.finalScore > highestFinalScore) {
+        highestFinalScore = r.finalScore;
+        highestFinalLevel = r.finalRiskLevel;
       }
     }
 
-    // Determine overall status based on highest risk
-    let overallStatus: "Blocked" | "Allowed" = 
-      (highestRiskLevel === "Medium" || highestRiskLevel === "Critical") 
-        ? "Blocked" 
+    // Determine overall status based on merged highest risk
+    let overallStatus: "Blocked" | "Allowed" =
+      highestFinalLevel === "Medium" || highestFinalLevel === "Critical"
+        ? "Blocked"
         : "Allowed";
-    
+
     if (learningMode) {
       overallStatus = "Allowed";
     }
@@ -120,8 +169,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       await logScan({
         toolName: "ci-pipeline",
         scenario: "github-action",
-        riskScore: highestRiskScore,
-        riskLevel: highestRiskLevel,
+        riskScore: highestFinalScore,
+        riskLevel: highestFinalLevel,
         detectedPatterns: fileResults.flatMap(f => f.detectedPatterns),
         originalContent: `Scanned ${fileResults.length} files`,
         sanitizedContent: `Scanned ${fileResults.length} files`,
@@ -131,18 +180,18 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       console.error("[Aegis /api/scan-batch] logScan failed:", logErr);
     }
 
-    // Return results
+    // Return results — include intent fields so CI consumers can log them
     return NextResponse.json<BatchScanResult>({
-      overallRiskScore: highestRiskScore,
-      overallRiskLevel: highestRiskLevel,
+      overallRiskScore: highestFinalScore,
+      overallRiskLevel: highestFinalLevel,
       overallStatus,
       filesScanned: fileResults.length,
       files: fileResults.map(f => ({
-        path: f.path,
-        riskScore: f.riskScore,
-        riskLevel: f.riskLevel,
-        detectedPatternsCount: f.detectedPatternsCount
-      }))
+        path:                  f.path,
+        riskScore:             f.finalScore,
+        riskLevel:             f.finalRiskLevel,
+        detectedPatternsCount: f.detectedPatternsCount,
+      })),
     }, { status: 200 });
 
   } catch (err) {
