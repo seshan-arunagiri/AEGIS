@@ -9,7 +9,8 @@ import { ScenarioSelector } from "@/components/demo/scenario-selector";
 import { ResponsePanel } from "@/components/demo/response-panel";
 import { ResultPanel } from "@/components/demo/result-panel";
 import type { DemoTool, DemoScenario } from "@/components/demo/demo-types";
-import type { ScanResult, RepoScanResult } from "@/types/types";
+import type { RepoScanResult } from "@/types/types";
+import type { ExtendedScanResult } from "@/components/demo/result-panel";
 import { RepoResultPanel } from "@/components/demo/repo-result-panel";
 
 // ─── Mock content preview — fetched locally before the scan ──────────────────
@@ -21,7 +22,7 @@ import { RepoResultPanel } from "@/components/demo/repo-result-panel";
 
 interface ScanState {
   status: "idle" | "loading" | "done" | "error";
-  result: ScanResult | null;
+  result: ExtendedScanResult | null;
   repoResult: RepoScanResult | null;
   errorMessage: string | null;
 }
@@ -101,7 +102,7 @@ export default function DemoPage() {
       if (inputMode === "github" && "files" in data) {
         setScanState({ status: "done", result: null, repoResult: data as RepoScanResult, errorMessage: null });
       } else {
-        setScanState({ status: "done", result: data as ScanResult, repoResult: null, errorMessage: null });
+        setScanState({ status: "done", result: data as ExtendedScanResult, repoResult: null, errorMessage: null });
       }
     } catch (err) {
       const message =

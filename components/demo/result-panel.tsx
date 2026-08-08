@@ -4,6 +4,17 @@ import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import type { ScanResult, RiskLevel, ThreatCategory } from "@/types/types";
 
+// ─── Extended type: API now returns extra intent-analysis fields ───────────────
+// These fields are optional so the component is backward-compatible when
+// intentAnalysisEnabled is false and the old ScanResult shape is returned.
+export interface ExtendedScanResult extends ScanResult {
+  regexScore?:       number;   // raw regex-only score
+  intentRiskScore?:  number | null;
+  intentReasoning?:  string | null;
+  finalScore?:       number;   // Math.max(regex, intent)
+  finalRiskLevel?:   RiskLevel;
+}
+
 // ─── Risk colour mapping ──────────────────────────────────────────────────────
 
 const RISK_CONFIG: Record<
@@ -117,14 +128,20 @@ function ScoreRing({ score, riskLevel }: ScoreRingProps) {
 // ─── Main ResultPanel ─────────────────────────────────────────────────────────
 
 interface ResultPanelProps {
-  result: ScanResult | null;
+  result: ExtendedScanResult | null;
   isLoading: boolean;
 }
 
 export function ResultPanel({ result, isLoading }: ResultPanelProps) {
-  const isBlocked = result
-    ? result.riskLevel === "Medium" || result.riskLevel === "Critical"
-    : false;
+  // Prefer the merged final level when intent analysis ran; fall back to regex level.
+  const displayLevel   = result?.finalRiskLevel   ?? result?.riskLevel   ?? "Safe";
+  const displayScore   = result?.finalScore        ?? result?.riskScore   ?? 0;
+  const regexScore     = result?.regexScore        ?? result?.riskScore   ?? 0;
+  const intentScore    = result?.intentRiskScore   ?? null;
+  const intentReason   = result?.intentReasoning   ?? null;
+  const aiCaughtIt     = intentScore !== null && intentScore > regexScore;
+
+  const isBlocked = displayLevel === "Medium" || displayLevel === "Critical";
 
   return (
     <div className="flex h-full flex-col rounded-xl border border-white/[0.07] bg-white/[0.02] overflow-hidden">
@@ -170,24 +187,24 @@ export function ResultPanel({ result, isLoading }: ResultPanelProps) {
             >
               {/* Score + Level row */}
               <div className="flex items-center gap-6">
-                <ScoreRing score={result.riskScore} riskLevel={result.riskLevel} />
+                <ScoreRing score={displayScore} riskLevel={displayLevel} />
                 <div className="flex flex-col gap-2">
-                  {/* Risk level badge */}
+                  {/* Risk level badge — driven by finalRiskLevel when available */}
                   <span
                     className={cn(
                       "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold",
-                      RISK_CONFIG[result.riskLevel].bg,
-                      RISK_CONFIG[result.riskLevel].border,
-                      RISK_CONFIG[result.riskLevel].color
+                      RISK_CONFIG[displayLevel].bg,
+                      RISK_CONFIG[displayLevel].border,
+                      RISK_CONFIG[displayLevel].color
                     )}
                   >
                     <span className={cn("h-1.5 w-1.5 rounded-full", {
-                      "bg-emerald-400": result.riskLevel === "Safe",
-                      "bg-yellow-400":  result.riskLevel === "Low",
-                      "bg-orange-400":  result.riskLevel === "Medium",
-                      "bg-red-400":     result.riskLevel === "Critical",
+                      "bg-emerald-400": displayLevel === "Safe",
+                      "bg-yellow-400":  displayLevel === "Low",
+                      "bg-orange-400":  displayLevel === "Medium",
+                      "bg-red-400":     displayLevel === "Critical",
                     })} />
-                    {RISK_CONFIG[result.riskLevel].label}
+                    {RISK_CONFIG[displayLevel].label}
                   </span>
 
                   {/* Block / Allow status */}
@@ -220,6 +237,65 @@ export function ResultPanel({ result, isLoading }: ResultPanelProps) {
                   </div>
                 </div>
               </div>
+
+              {/* ── Score breakdown (shown only when intent analysis ran) ── */}
+              {intentScore !== null && (
+                <motion.div
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: 0.1 }}
+                  className="flex flex-col gap-1.5"
+                >
+                  <h3 className="text-xs font-semibold uppercase tracking-widest text-zinc-600">
+                    Score Breakdown
+                  </h3>
+
+                  {/* Pattern match row */}
+                  <div className="flex items-center justify-between rounded-lg border border-white/[0.05] bg-white/[0.02] px-3 py-2">
+                    <span className="text-[11px] text-zinc-400">Pattern Match</span>
+                    <span className="font-mono text-[11px] text-zinc-300">
+                      {regexScore}/100
+                      <span className={cn("ml-1.5 text-[10px]", RISK_CONFIG[result!.riskLevel].color)}>
+                        ({RISK_CONFIG[result!.riskLevel].label})
+                      </span>
+                    </span>
+                  </div>
+
+                  {/* AI Intent Analysis row — amber highlight when it drove the final score up */}
+                  <div
+                    className={cn(
+                      "flex flex-col gap-1.5 rounded-lg border px-3 py-2",
+                      aiCaughtIt
+                        ? "border-amber-500/30 bg-amber-500/[0.06]"
+                        : "border-white/[0.05] bg-white/[0.02]"
+                    )}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[11px] text-zinc-400">AI Intent Analysis</span>
+                        {aiCaughtIt && (
+                          <span className="rounded-full border border-amber-500/40 bg-amber-500/10 px-1.5 py-px text-[9px] font-semibold uppercase tracking-wide text-amber-400">
+                            AI Catch
+                          </span>
+                        )}
+                      </div>
+                      <span className="font-mono text-[11px] text-zinc-300">
+                        {intentScore}/100
+                        {result?.finalRiskLevel && (
+                          <span className={cn("ml-1.5 text-[10px]", RISK_CONFIG[result.finalRiskLevel].color)}>
+                            ({RISK_CONFIG[result.finalRiskLevel].label})
+                          </span>
+                        )}
+                      </span>
+                    </div>
+                    {intentReason && (
+                      <p className="text-[10px] leading-relaxed text-zinc-500">
+                        {intentReason}
+                      </p>
+                    )}
+                  </div>
+                </motion.div>
+              )}
 
               {/* Detected patterns */}
               <div>
