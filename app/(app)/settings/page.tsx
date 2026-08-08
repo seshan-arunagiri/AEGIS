@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
-import { Activity, ShieldAlert, Code, Moon, Settings as SettingsIcon, Sparkles } from "lucide-react";
+import { Activity, ShieldAlert, Code, Moon, Settings as SettingsIcon, Sparkles, BrainCircuit } from "lucide-react";
 import { toast } from "sonner";
 import type { AppSettings } from "@prisma/client";
 
@@ -155,6 +155,30 @@ export default function SettingsPage() {
             <Switch 
               checked={settings?.aiVerificationEnabled || false} 
               onCheckedChange={(checked) => handleToggle("aiVerificationEnabled", checked)} 
+            />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <BrainCircuit className="w-5 h-5 text-sky-400" />
+              Independent AI Intent Analysis
+            </CardTitle>
+            <CardDescription>
+              Runs a separate Groq LLaMA call in parallel with the regex scan to judge the
+              semantic intent of content — catches manipulation attempts that don't match any
+              keyword pattern. Final risk score is the higher of the two. Requires GROQ_API_KEY.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <span className="text-sm font-medium">Enable Intent Analysis</span>
+              <p className="text-xs text-muted-foreground">Runs in parallel — no latency impact on the regex scan.</p>
+            </div>
+            <Switch
+              checked={settings?.intentAnalysisEnabled || false}
+              onCheckedChange={(checked) => handleToggle("intentAnalysisEnabled", checked)}
             />
           </CardContent>
         </Card>
