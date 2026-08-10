@@ -47,23 +47,32 @@ export function Navbar() {
 
           {/* Desktop nav links — sourced from lib/navigation.ts */}
           <nav className="hidden items-center gap-1 md:flex" aria-label="Main navigation">
-            {TOP_NAV_ITEMS.map((item) => (
-              <Link
-                key={item.label}
-                href={item.href}
-                id={`nav-${item.label.toLowerCase()}`}
-                className="rounded-md px-3 py-1.5 text-sm text-zinc-400 transition-colors hover:bg-white/5 hover:text-white"
-              >
-                {item.label}
-              </Link>
-            ))}
+            {TOP_NAV_ITEMS.map((item) => {
+              const isActive =
+                pathname === item.href || pathname?.startsWith(item.href + "/");
+              return (
+                <Link
+                  key={item.label}
+                  href={item.href}
+                  id={`nav-${item.label.toLowerCase()}`}
+                  className={
+                    isActive
+                      ? "rounded-md px-3 py-1.5 text-sm font-medium text-white bg-white/[0.08] transition-colors"
+                      : "rounded-md px-3 py-1.5 text-sm text-zinc-400 transition-colors hover:bg-white/5 hover:text-white"
+                  }
+                  aria-current={isActive ? "page" : undefined}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
           </nav>
 
           {/* Right-side actions */}
           <div className="flex items-center gap-2">
             {/* GitHub icon — desktop only */}
             <Link
-              href="https://github.com"
+              href="https://github.com/seshan-arunagiri/AEGIS"
               target="_blank"
               rel="noopener noreferrer"
               id="nav-github"
@@ -114,18 +123,31 @@ export function Navbar() {
             className="border-t border-white/[0.06] bg-[#0A0A0A]/95 px-4 py-3 md:hidden"
           >
             <ul className="flex flex-col gap-1">
-              {TOP_NAV_ITEMS.map((item) => (
-                <li key={item.label}>
-                  <Link
-                    href={item.href}
-                    onClick={() => setMobileOpen(false)}
-                    className="flex w-full items-center gap-2 rounded-md px-3 py-2.5 text-sm text-zinc-300 transition-colors hover:bg-white/5 hover:text-white"
-                  >
-                    <item.icon className="h-4 w-4 shrink-0 text-zinc-500" />
-                    {item.label}
-                  </Link>
-                </li>
-              ))}
+              {TOP_NAV_ITEMS.map((item) => {
+                const isActive =
+                  pathname === item.href || pathname?.startsWith(item.href + "/");
+                return (
+                  <li key={item.label}>
+                    <Link
+                      href={item.href}
+                      onClick={() => setMobileOpen(false)}
+                      aria-current={isActive ? "page" : undefined}
+                      className={
+                        isActive
+                          ? "flex w-full items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium text-white bg-white/[0.08] transition-colors"
+                          : "flex w-full items-center gap-2 rounded-md px-3 py-2.5 text-sm text-zinc-300 transition-colors hover:bg-white/5 hover:text-white"
+                      }
+                    >
+                      <item.icon
+                        className={
+                          isActive ? "h-4 w-4 shrink-0 text-white/70" : "h-4 w-4 shrink-0 text-zinc-500"
+                        }
+                      />
+                      {item.label}
+                    </Link>
+                  </li>
+                );
+              })}
             </ul>
           </nav>
         )}
