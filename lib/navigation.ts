@@ -15,8 +15,6 @@ import {
   Activity,
   FileText,
   BarChart3,
-  Network,
-  BookOpen,
   Settings,
 } from "lucide-react";
 
@@ -34,8 +32,6 @@ export const NAV_ITEMS: NavItem[] = [
   { label: "Demo",         href: "/demo",         icon: Activity,        topNav: true  },
   { label: "Logs",         href: "/logs",         icon: FileText,        topNav: false },
   { label: "Analytics",    href: "/analytics",    icon: BarChart3,       topNav: false },
-  { label: "Architecture", href: "/architecture", icon: Network,         topNav: true  },
-  { label: "Docs",         href: "/docs",         icon: BookOpen,        topNav: true  },
   { label: "Settings",     href: "/settings",     icon: Settings,        topNav: false },
 ];
 
