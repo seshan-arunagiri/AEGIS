@@ -105,8 +105,17 @@ OUTPUT FORMAT — respond with ONLY this JSON object, nothing else:
     clearTimeout(timeoutId);
 
     if (!response.ok) {
-      console.warn(
-        `[AI Intent Analysis] Groq API error: ${response.status} ${response.statusText}`
+      // Read the error body so the exact Groq failure reason appears in logs
+      // (e.g. "Invalid API Key", rate-limit message, model error).
+      let groqErrorBody: string = "<unreadable>";
+      try {
+        const errJson = await response.json() as { error?: { message?: string } };
+        groqErrorBody = errJson?.error?.message ?? JSON.stringify(errJson);
+      } catch {
+        try { groqErrorBody = await response.text(); } catch { /* ignore */ }
+      }
+      console.error(
+        `[AI Intent Analysis] Groq API error ${response.status} ${response.statusText}: ${groqErrorBody}`
       );
       return null;
     }
