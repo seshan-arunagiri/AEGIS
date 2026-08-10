@@ -73,7 +73,7 @@ export default function AnalyticsPage() {
     <div className="p-8 max-w-7xl mx-auto space-y-8">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Analytics</h1>
-        <p className="text-muted-foreground mt-1">Deep dive into AgentShield detection telemetry and traffic patterns.</p>
+        <p className="text-muted-foreground mt-1">Deep dive into Aegis detection telemetry and traffic patterns.</p>
       </div>
 
       {!hasData ? (

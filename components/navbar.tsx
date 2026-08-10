@@ -1,13 +1,7 @@
 "use client";
 
 import Link from "next/link";
-
-const navLinks = [
-  { label: "Demo", href: "/demo" },
-  { label: "Dashboard", href: "/dashboard" },
-  { label: "Docs", href: "#" },
-  { label: "Architecture", href: "/architecture" },
-];
+import { TOP_NAV_ITEMS } from "@/lib/navigation";
 
 export function Navbar() {
   return (
@@ -38,16 +32,16 @@ export function Navbar() {
           </span>
         </Link>
 
-        {/* Nav links */}
+        {/* Nav links — sourced from lib/navigation.ts */}
         <nav className="hidden items-center gap-1 md:flex" aria-label="Main navigation">
-          {navLinks.map((link) => (
+          {TOP_NAV_ITEMS.map((item) => (
             <Link
-              key={link.label}
-              href={link.href}
-              id={`nav-${link.label.toLowerCase()}`}
+              key={item.label}
+              href={item.href}
+              id={`nav-${item.label.toLowerCase()}`}
               className="rounded-md px-3 py-1.5 text-sm text-zinc-400 transition-colors hover:bg-white/5 hover:text-white"
             >
-              {link.label}
+              {item.label}
             </Link>
           ))}
         </nav>

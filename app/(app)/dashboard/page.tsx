@@ -117,7 +117,7 @@ export default function DashboardPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">{stats?.totalRequests || 0}</div>
-                  <p className="text-xs text-muted-foreground">Scanned by AgentShield</p>
+                  <p className="text-xs text-muted-foreground">Scanned by Aegis</p>
                 </CardContent>
               </Card>
             </motion.div>
