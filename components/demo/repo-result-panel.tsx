@@ -4,10 +4,24 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import type { RepoScanResult, RiskLevel } from "@/types/types";
+import type { RepoScanResult, FileScanResult, RiskLevel } from "@/types/types";
+
+// Extend FileScanResult locally to include the intent fields the API already returns.
+// These are optional so the component stays backward-compatible.
+interface FileScanResultWithIntent extends FileScanResult {
+  regexScore?:      number | null;
+  intentRiskScore?: number | null;
+  intentReasoning?: string | null;
+  finalScore?:      number | null;
+  finalRiskLevel?:  RiskLevel;
+}
+
+interface RepoScanResultWithIntent extends Omit<RepoScanResult, "files"> {
+  files: FileScanResultWithIntent[];
+}
 
 interface RepoResultPanelProps {
-  result: RepoScanResult | null;
+  result: RepoScanResultWithIntent | null;
   isLoading: boolean;
 }
 
@@ -131,37 +145,108 @@ export function RepoResultPanel({ result, isLoading }: RepoResultPanelProps) {
                       transition={{ duration: 0.2 }}
                       className="border-t border-white/[0.06]"
                     >
-                      <div className="p-3 bg-black/60">
-                        {file.detectedPatterns.length > 0 ? (
-                          <div className="space-y-2">
-                            <p className="text-[10px] uppercase tracking-wider text-zinc-600 font-semibold">
-                              Detected Patterns
-                            </p>
-                            {file.detectedPatterns.map((pattern, idx) => (
-                              <div
-                                key={idx}
-                                className="rounded border border-white/[0.06] bg-black/40 p-2"
-                              >
-                                <div className="flex items-start justify-between gap-2">
-                                  <div className="flex-1">
-                                    <p className="text-xs text-white font-medium">
-                                      {pattern.pattern}
-                                    </p>
-                                    <p className="text-[10px] text-zinc-500 mt-0.5">
-                                      Category: {pattern.category}
-                                    </p>
-                                  </div>
-                                  <span className="text-[10px] text-zinc-600 font-mono shrink-0">
-                                    +{pattern.weight}
+                       <div className="p-3 bg-black/60 space-y-3">
+                          {/* ── Score breakdown (only when intent analysis ran) ── */}
+                          {typeof file.intentRiskScore === "number" && (
+                            <div className="space-y-1.5">
+                              <p className="text-[10px] uppercase tracking-wider text-zinc-600 font-semibold">
+                                Score Breakdown
+                              </p>
+                              {/* Pattern match row */}
+                              <div className="flex items-center justify-between rounded border border-white/[0.05] bg-white/[0.02] px-2.5 py-1.5">
+                                <span className="text-[11px] text-zinc-400">Pattern Match</span>
+                                <span className="font-mono text-[11px] text-zinc-300">
+                                  {file.regexScore ?? file.riskScore}/100
+                                  <span className={`ml-1.5 text-[10px] ${getRiskColor(file.riskLevel).split(" ")[0]}`}>
+                                    ({file.riskLevel})
                                   </span>
-                                </div>
+                                </span>
                               </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <p className="text-xs text-zinc-600">No threats detected in this file</p>
-                        )}
-                      </div>
+                              {/* AI Intent row */}
+                              {(() => {
+                                const intentScore   = file.intentRiskScore!;
+                                const regexScoreVal = file.regexScore ?? file.riskScore;
+                                const aiCaughtIt    = intentScore > regexScoreVal;
+                                const intentLevel   = file.finalRiskLevel ?? file.riskLevel;
+                                return (
+                                  <div className={`flex flex-col gap-2 rounded border px-2.5 py-2 ${
+                                    aiCaughtIt
+                                      ? "border-amber-500/30 bg-amber-500/[0.06]"
+                                      : "border-sky-500/20 bg-sky-500/[0.04]"
+                                  }`}>
+                                    <div className="flex items-center justify-between">
+                                      <div className="flex items-center gap-1.5">
+                                        <span className={`text-[11px] font-semibold ${
+                                          aiCaughtIt ? "text-amber-300" : "text-sky-300"
+                                        }`}>
+                                          AI Intent Analysis
+                                        </span>
+                                        {aiCaughtIt && (
+                                          <span className="rounded-full border border-amber-500/40 bg-amber-500/10 px-1.5 py-px text-[9px] font-semibold uppercase tracking-wide text-amber-400">
+                                            AI Catch
+                                          </span>
+                                        )}
+                                      </div>
+                                      <span className="font-mono text-[11px] text-zinc-300">
+                                        {intentScore}/100
+                                        <span className={`ml-1.5 text-[10px] ${getRiskColor(intentLevel).split(" ")[0]}`}>
+                                          ({intentLevel})
+                                        </span>
+                                      </span>
+                                    </div>
+                                    {file.intentReasoning && (
+                                      <div className={`flex gap-2 rounded border-l-2 py-1.5 pl-2.5 pr-1.5 ${
+                                        aiCaughtIt
+                                          ? "border-amber-400/50 bg-amber-500/[0.05]"
+                                          : "border-sky-400/40 bg-sky-500/[0.04]"
+                                      }`}>
+                                        <span className={`select-none font-serif text-xl leading-none ${
+                                          aiCaughtIt ? "text-amber-500/50" : "text-sky-500/40"
+                                        }`} aria-hidden="true">&ldquo;</span>
+                                        <p className={`text-[11px] font-medium italic leading-relaxed ${
+                                          aiCaughtIt ? "text-amber-100/80" : "text-zinc-200/80"
+                                        }`}>
+                                          {file.intentReasoning}
+                                        </p>
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })()}
+                            </div>
+                          )}
+
+                          {/* ── Detected patterns ── */}
+                          {file.detectedPatterns.length > 0 ? (
+                           <div className="space-y-2">
+                             <p className="text-[10px] uppercase tracking-wider text-zinc-600 font-semibold">
+                               Detected Patterns
+                             </p>
+                             {file.detectedPatterns.map((pattern, idx) => (
+                               <div
+                                 key={idx}
+                                 className="rounded border border-white/[0.06] bg-black/40 p-2"
+                               >
+                                 <div className="flex items-start justify-between gap-2">
+                                   <div className="flex-1">
+                                     <p className="text-xs text-white font-medium">
+                                       {pattern.pattern}
+                                     </p>
+                                     <p className="text-[10px] text-zinc-500 mt-0.5">
+                                       Category: {pattern.category}
+                                     </p>
+                                   </div>
+                                   <span className="text-[10px] text-zinc-600 font-mono shrink-0">
+                                     +{pattern.weight}
+                                   </span>
+                                 </div>
+                               </div>
+                             ))}
+                           </div>
+                         ) : (
+                           <p className="text-xs text-zinc-600">No threats detected in this file</p>
+                         )}
+                       </div>
                     </motion.div>
                   )}
                 </AnimatePresence>
