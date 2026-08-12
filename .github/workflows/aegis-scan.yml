@@ -81,8 +81,8 @@ jobs:
           
           files_json+="]"
           
-          # Save to file to avoid issues with special characters in GitHub Actions
-          echo "$files_json" > /tmp/scan_payload.json
+          # Wrap in the envelope the route expects: { "files": [...] }
+          echo "{\"files\":$files_json}" > /tmp/scan_payload.json
           
           echo "payload_ready=true" >> $GITHUB_OUTPUT
           echo "file_count=$(echo $files_json | jq '. | length')" >> $GITHUB_OUTPUT
