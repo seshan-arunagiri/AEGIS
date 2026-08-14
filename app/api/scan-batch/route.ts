@@ -121,6 +121,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           const regexScore      = scanResult.riskScore;
           const intentRiskScore = intentResult?.intentRiskScore ?? null;
           const intentReasoning = intentResult?.reasoning        ?? null;
+          const intentFlaggedText = intentResult?.flaggedText    ?? null;
           const finalScore      = Math.max(regexScore, intentRiskScore ?? 0);
           const finalRiskLevel  = scoreToRiskLevel(finalScore);
 
@@ -129,6 +130,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
             regexScore,
             intentRiskScore,
             intentReasoning,
+            intentFlaggedText,
             finalScore,
             finalRiskLevel,
             // legacy aliases — BatchScanResult consumers that read riskScore/riskLevel

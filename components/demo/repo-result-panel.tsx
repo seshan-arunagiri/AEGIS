@@ -9,11 +9,12 @@ import type { RepoScanResult, FileScanResult, RiskLevel } from "@/types/types";
 // Extend FileScanResult locally to include the intent fields the API already returns.
 // These are optional so the component stays backward-compatible.
 interface FileScanResultWithIntent extends FileScanResult {
-  regexScore?:      number | null;
-  intentRiskScore?: number | null;
-  intentReasoning?: string | null;
-  finalScore?:      number | null;
-  finalRiskLevel?:  RiskLevel;
+  regexScore?:        number | null;
+  intentRiskScore?:   number | null;
+  intentReasoning?:   string | null;
+  intentFlaggedText?: string | null;    // specific span that drove the score
+  finalScore?:        number | null;
+  finalRiskLevel?:    RiskLevel;
 }
 
 interface RepoScanResultWithIntent extends Omit<RepoScanResult, "files"> {
@@ -208,6 +209,21 @@ export function RepoResultPanel({ result, isLoading }: RepoResultPanelProps) {
                                         }`}>
                                           {file.intentReasoning}
                                         </p>
+                                      </div>
+                                    )}
+                                    {/* Flagged span */}
+                                    {file.intentFlaggedText && (
+                                      <div className="flex items-start gap-1.5 pt-0.5">
+                                        <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wider text-zinc-600 pt-px">
+                                          Flagged text:
+                                        </span>
+                                        <code className={`rounded border px-1.5 py-0.5 font-mono text-[10px] leading-snug break-all ${
+                                          aiCaughtIt
+                                            ? "border-amber-500/25 bg-amber-500/[0.08] text-amber-200/90"
+                                            : "border-sky-500/20 bg-sky-500/[0.06] text-sky-200/90"
+                                        }`}>
+                                          &ldquo;{file.intentFlaggedText}&rdquo;
+                                        </code>
                                       </div>
                                     )}
                                   </div>

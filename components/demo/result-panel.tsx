@@ -8,11 +8,12 @@ import type { ScanResult, RiskLevel, ThreatCategory } from "@/types/types";
 // These fields are optional so the component is backward-compatible when
 // intentAnalysisEnabled is false and the old ScanResult shape is returned.
 export interface ExtendedScanResult extends ScanResult {
-  regexScore?:       number;   // raw regex-only score
-  intentRiskScore?:  number | null;
-  intentReasoning?:  string | null;
-  finalScore?:       number;   // Math.max(regex, intent)
-  finalRiskLevel?:   RiskLevel;
+  regexScore?:         number;           // raw regex-only score
+  intentRiskScore?:    number | null;
+  intentReasoning?:    string | null;
+  intentFlaggedText?:  string | null;    // specific span that drove the score
+  finalScore?:         number;           // Math.max(regex, intent)
+  finalRiskLevel?:     RiskLevel;
 }
 
 // ─── Risk colour mapping ──────────────────────────────────────────────────────
@@ -139,6 +140,7 @@ export function ResultPanel({ result, isLoading }: ResultPanelProps) {
   const regexScore     = result?.regexScore        ?? result?.riskScore   ?? 0;
   const intentScore    = result?.intentRiskScore   ?? null;
   const intentReason   = result?.intentReasoning   ?? null;
+  const intentFlagged  = result?.intentFlaggedText ?? null;
   const aiCaughtIt     = intentScore !== null && intentScore > regexScore;
 
   const isBlocked = displayLevel === "Medium" || displayLevel === "Critical";
@@ -311,7 +313,7 @@ export function ResultPanel({ result, isLoading }: ResultPanelProps) {
                       </span>
                     </div>
 
-                    {/* Reasoning blockquote — always shown, this is the trust signal */}
+                    {/* Reasoning blockquote — always shown when intent ran */}
                     {intentReason && (
                       <div className={cn(
                         "flex gap-2.5 rounded-md border-l-2 py-2 pl-3 pr-2",
@@ -330,6 +332,23 @@ export function ResultPanel({ result, isLoading }: ResultPanelProps) {
                         )}>
                           {intentReason}
                         </p>
+                      </div>
+                    )}
+
+                    {/* Flagged span — the specific excerpt that drove the score */}
+                    {intentFlagged && (
+                      <div className="flex items-start gap-1.5 pt-0.5">
+                        <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wider text-zinc-600 pt-px">
+                          Flagged text:
+                        </span>
+                        <code className={cn(
+                          "rounded border px-1.5 py-0.5 font-mono text-[11px] leading-snug break-all",
+                          aiCaughtIt
+                            ? "border-amber-500/25 bg-amber-500/[0.08] text-amber-200/90"
+                            : "border-sky-500/20 bg-sky-500/[0.06] text-sky-200/90"
+                        )}>
+                          &ldquo;{intentFlagged}&rdquo;
+                        </code>
                       </div>
                     )}
                   </div>
