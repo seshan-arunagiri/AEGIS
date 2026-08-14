@@ -141,7 +141,13 @@ export function ResultPanel({ result, isLoading }: ResultPanelProps) {
   const intentScore    = result?.intentRiskScore   ?? null;
   const intentReason   = result?.intentReasoning   ?? null;
   const intentFlagged  = result?.intentFlaggedText ?? null;
-  const aiCaughtIt     = intentScore !== null && intentScore > regexScore;
+
+  // "AI Catch" only fires when the AI verdict moves the needle into a WORSE
+  // risk tier than regex alone — not just a higher raw number within the same band.
+  const LEVEL_ORD = { Safe: 0, Low: 1, Medium: 2, Critical: 3 } as const;
+  const riskTier  = (s: number) =>
+    s <= 25 ? LEVEL_ORD.Safe : s <= 50 ? LEVEL_ORD.Low : s <= 75 ? LEVEL_ORD.Medium : LEVEL_ORD.Critical;
+  const aiCaughtIt = intentScore !== null && riskTier(intentScore) > riskTier(regexScore);
 
   const isBlocked = displayLevel === "Medium" || displayLevel === "Critical";
 

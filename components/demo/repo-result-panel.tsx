@@ -167,7 +167,11 @@ export function RepoResultPanel({ result, isLoading }: RepoResultPanelProps) {
                               {(() => {
                                 const intentScore   = file.intentRiskScore!;
                                 const regexScoreVal = file.regexScore ?? file.riskScore;
-                                const aiCaughtIt    = intentScore > regexScoreVal;
+                                // "AI Catch" only when AI crossed into a worse tier, not just a higher number.
+                                const LEVEL_ORD = { Safe: 0, Low: 1, Medium: 2, Critical: 3 } as const;
+                                const riskTier  = (s: number) =>
+                                  s <= 25 ? LEVEL_ORD.Safe : s <= 50 ? LEVEL_ORD.Low : s <= 75 ? LEVEL_ORD.Medium : LEVEL_ORD.Critical;
+                                const aiCaughtIt    = riskTier(intentScore) > riskTier(regexScoreVal);
                                 const intentLevel   = file.finalRiskLevel ?? file.riskLevel;
                                 return (
                                   <div className={`flex flex-col gap-2 rounded border px-2.5 py-2 ${
