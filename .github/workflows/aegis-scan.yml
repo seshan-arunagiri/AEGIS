@@ -119,82 +119,116 @@ jobs:
           echo "risk_level=$overall_risk_level" >> $GITHUB_OUTPUT
 
       - name: Post PR comment
-        if: github.event_name == 'pull_request' && steps.prepare.outputs.payload_ready == 'true'
+        # Only post when: this is a PR, files were scanned, AND the API call succeeded.
+        # Without the http_code guard the step runs on API errors and either silently
+        # returns (JSON parse throws) or posts a broken/empty comment body.
+        if: |
+          github.event_name == 'pull_request' &&
+          steps.prepare.outputs.payload_ready == 'true' &&
+          steps.scan.outputs.http_code == '200'
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const fs = require('fs');
-            
-            // Read scan result
+
+            // ── Read scan result ───────────────────────────────────────────────
             let scanResult;
             try {
               scanResult = JSON.parse(fs.readFileSync('/tmp/scan_result.json', 'utf8'));
             } catch (err) {
-              console.error('Failed to read scan result:', err);
+              core.error('Failed to read/parse scan result: ' + err.message);
               return;
             }
-            
-            // Build status emoji
+
+            // ── Helpers ────────────────────────────────────────────────────────
+            const riskEmoji = { Safe: '✅', Low: '🟡', Medium: '🟠', Critical: '🔴' };
             const statusEmoji = scanResult.overallStatus === 'Blocked' ? '🚫' : '✅';
-            const riskEmoji = {
-              'Safe': '✅',
-              'Low': '🟡',
-              'Medium': '🟠',
-              'Critical': '🔴'
-            };
-            
-            // Build per-file table
-            let fileTable = '| File | Risk Level | Score |\n|------|-----------|-------|\n';
+
+            // ── Per-file table ─────────────────────────────────────────────────
+            // All files get a summary row; non-Safe files also get an AI detail block.
+            let fileRows = '';
+            const nonSafeDetails = [];
+
             for (const file of scanResult.files || []) {
-              const emoji = riskEmoji[file.riskLevel] || '⚪';
-              fileTable += `| \`${file.path}\` | ${emoji} ${file.riskLevel} | ${file.riskScore}/100 |\n`;
+              const level   = file.finalRiskLevel || file.riskLevel || 'Safe';
+              const score   = file.finalScore     ?? file.riskScore ?? 0;
+              const emoji   = riskEmoji[level] || '⚪';
+              fileRows += `| \`${file.path}\` | ${emoji} ${level} | ${score}/100 |\n`;
+
+              // Collect AI intent detail for every non-Safe file
+              if (level !== 'Safe' && (file.intentReasoning || file.intentFlaggedText)) {
+                let detail = `**\`${file.path}\`** — ${emoji} ${level} (${score}/100)`;
+                if (file.intentReasoning) {
+                  detail += `\n> ${file.intentReasoning}`;
+                }
+                if (file.intentFlaggedText) {
+                  detail += `\n> \`Flagged:\` \`${file.intentFlaggedText}\``;
+                }
+                nonSafeDetails.push(detail);
+              }
             }
-            
-            // Build comment body
-            const commentBody = `## ${statusEmoji} Aegis Security Scan Results
-            
-            **Overall Status:** ${scanResult.overallStatus}  
-            **Overall Risk Level:** ${riskEmoji[scanResult.overallRiskLevel] || '⚪'} ${scanResult.overallRiskLevel}  
-            **Overall Risk Score:** ${scanResult.overallRiskScore}/100  
-            **Files Scanned:** ${scanResult.filesScanned}
-            
-            ### Per-File Results
-            
-            ${fileTable}
-            
-            ${scanResult.overallStatus === 'Blocked' 
-              ? '⚠️ **This PR is blocked due to detected security threats.** Review the flagged files and remove any prompt injection patterns before merging.' 
-              : '✅ No high-risk threats detected. Safe to merge.'}
-            `;
-            
-            // Find existing comment
+
+            const fileTable =
+              '| File | Risk Level | Score |\n' +
+              '|------|-----------|-------|\n' +
+              fileRows;
+
+            const aiSection = nonSafeDetails.length > 0
+              ? `\n### 🔍 AI Intent Analysis — Non-Safe Files\n\n${nonSafeDetails.join('\n\n')}\n`
+              : '';
+
+            const verdict = scanResult.overallStatus === 'Blocked'
+              ? '⚠️ **This PR is blocked due to detected security threats.** Review the flagged files and remove any prompt injection patterns before merging.'
+              : '✅ No high-risk threats detected. Safe to merge.';
+
+            // ── Comment body ───────────────────────────────────────────────────
+            // Template literal starts at column 0 to avoid GitHub rendering the
+            // leading spaces as a fenced code block.
+            const commentBody =
+`## ${statusEmoji} Aegis Security Scan Results
+
+**Overall Status:** ${scanResult.overallStatus}
+**Overall Risk Level:** ${riskEmoji[scanResult.overallRiskLevel] || '⚪'} ${scanResult.overallRiskLevel}
+**Overall Risk Score:** ${scanResult.overallRiskScore}/100
+**Files Scanned:** ${scanResult.filesScanned}
+
+### Per-File Results
+
+${fileTable}${aiSection}
+${verdict}
+
+<sub>Powered by [Aegis](https://github.com/seshan-arunagiri/AEGIS) — AI-native MCP threat detection</sub>`;
+
+            // ── Create or update existing bot comment ──────────────────────────
             const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number,
             });
-            
-            const existingComment = comments.find(comment => 
-              comment.user.type === 'Bot' && comment.body.includes('Aegis Security Scan Results')
+
+            const existingComment = comments.find(c =>
+              c.user.type === 'Bot' && c.body.includes('Aegis Security Scan Results')
             );
-            
-            // Create or update comment
+
             if (existingComment) {
               await github.rest.issues.updateComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 comment_id: existingComment.id,
-                body: commentBody
+                body: commentBody,
               });
+              core.info(`Updated existing comment #${existingComment.id}`);
             } else {
               await github.rest.issues.createComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: context.issue.number,
-                body: commentBody
+                body: commentBody,
               });
+              core.info('Posted new PR comment');
             }
+
 
       - name: Check scan result
         if: steps.prepare.outputs.payload_ready == 'true'
