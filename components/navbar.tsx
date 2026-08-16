@@ -17,12 +17,12 @@ export function Navbar() {
 
   return (
     <>
-      <header className="fixed top-0 left-0 right-0 z-50 border-b border-white/[0.06] bg-[#0A0A0A]/80 backdrop-blur-md">
+      <header className="fixed top-0 left-0 right-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-md">
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-6">
 
           {/* Logo — explicitly links back to the landing page */}
           <Link href="/" className="flex items-center gap-2.5 group" id="nav-logo">
-            <div className="flex h-7 w-7 items-center justify-center rounded-md border border-white/10 bg-white/5 transition-colors group-hover:border-white/20 group-hover:bg-white/10">
+            <div className="flex h-7 w-7 items-center justify-center rounded-md border border-border/50 bg-muted/50 transition-colors group-hover:border-border group-hover:bg-muted">
               <svg
                 width="14"
                 height="14"
@@ -35,12 +35,12 @@ export function Navbar() {
                   stroke="currentColor"
                   strokeWidth="1.2"
                   strokeLinejoin="round"
-                  className="text-white"
+                  className="text-foreground"
                 />
-                <circle cx="7" cy="7" r="1.5" fill="currentColor" className="text-white" />
+                <circle cx="7" cy="7" r="1.5" fill="currentColor" className="text-foreground" />
               </svg>
             </div>
-            <span className="text-sm font-semibold tracking-tight text-white transition-opacity group-hover:opacity-90">
+            <span className="text-sm font-semibold tracking-tight text-foreground transition-opacity group-hover:opacity-90">
               Aegis
             </span>
           </Link>
@@ -57,8 +57,8 @@ export function Navbar() {
                   id={`nav-${item.label.toLowerCase()}`}
                   className={
                     isActive
-                      ? "rounded-md px-3 py-1.5 text-sm font-medium text-white bg-white/[0.08] transition-colors"
-                      : "rounded-md px-3 py-1.5 text-sm text-zinc-400 transition-colors hover:bg-white/5 hover:text-white"
+                      ? "rounded-md px-3 py-1.5 text-sm font-medium text-foreground bg-accent transition-colors"
+                      : "rounded-md px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
                   }
                   aria-current={isActive ? "page" : undefined}
                 >
@@ -77,7 +77,7 @@ export function Navbar() {
               rel="noopener noreferrer"
               id="nav-github"
               aria-label="GitHub"
-              className="hidden text-zinc-500 transition-colors hover:text-white sm:block"
+              className="hidden text-muted-foreground transition-colors hover:text-foreground sm:block"
             >
               <svg
                 width="18"
@@ -94,7 +94,7 @@ export function Navbar() {
             <Link
               href="/demo"
               id="nav-cta"
-              className="rounded-md bg-white px-3.5 py-1.5 text-sm font-medium text-black transition-opacity hover:opacity-90"
+              className="rounded-md bg-primary px-3.5 py-1.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
             >
               Try Demo
             </Link>
@@ -106,7 +106,7 @@ export function Navbar() {
               aria-expanded={mobileOpen}
               aria-controls="nav-mobile-menu"
               onClick={() => setMobileOpen((o) => !o)}
-              className="flex h-8 w-8 items-center justify-center rounded-md text-zinc-400 transition-colors hover:bg-white/5 hover:text-white md:hidden"
+              className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground md:hidden"
             >
               {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
@@ -120,7 +120,7 @@ export function Navbar() {
           <nav
             id="nav-mobile-menu"
             aria-label="Mobile navigation"
-            className="border-t border-white/[0.06] bg-[#0A0A0A]/95 px-4 py-3 md:hidden"
+            className="border-t border-border/50 bg-background/95 px-4 py-3 md:hidden"
           >
             <ul className="flex flex-col gap-1">
               {TOP_NAV_ITEMS.map((item) => {
@@ -134,13 +134,13 @@ export function Navbar() {
                       aria-current={isActive ? "page" : undefined}
                       className={
                         isActive
-                          ? "flex w-full items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium text-white bg-white/[0.08] transition-colors"
-                          : "flex w-full items-center gap-2 rounded-md px-3 py-2.5 text-sm text-zinc-300 transition-colors hover:bg-white/5 hover:text-white"
+                          ? "flex w-full items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium text-foreground bg-accent transition-colors"
+                          : "flex w-full items-center gap-2 rounded-md px-3 py-2.5 text-sm text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
                       }
                     >
                       <item.icon
                         className={
-                          isActive ? "h-4 w-4 shrink-0 text-white/70" : "h-4 w-4 shrink-0 text-zinc-500"
+                          isActive ? "h-4 w-4 shrink-0 text-foreground/70" : "h-4 w-4 shrink-0 text-muted-foreground"
                         }
                       />
                       {item.label}
