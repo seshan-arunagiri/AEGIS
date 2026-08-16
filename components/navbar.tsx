@@ -40,7 +40,7 @@ export function Navbar() {
                 <circle cx="7" cy="7" r="1.5" fill="currentColor" className="text-white" />
               </svg>
             </div>
-            <span className="text-sm font-semibold tracking-tight text-white">
+            <span className="text-sm font-semibold tracking-tight text-white transition-opacity group-hover:opacity-90">
               Aegis
             </span>
           </Link>

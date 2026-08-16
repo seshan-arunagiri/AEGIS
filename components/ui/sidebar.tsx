@@ -73,10 +73,10 @@ export function Sidebar() {
       >
         {/* Header row — includes close button on mobile */}
         <div className="flex items-center justify-between p-6">
-          <div className="flex items-center gap-3">
+          <Link href="/" className="flex items-center gap-3 transition-opacity hover:opacity-90">
             <ShieldAlert className="w-6 h-6 text-primary" />
             <span className="font-semibold text-lg tracking-tight">Aegis</span>
-          </div>
+          </Link>
           {/* Close button — mobile only */}
           <button
             aria-label="Close navigation menu"

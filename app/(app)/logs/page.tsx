@@ -35,6 +35,15 @@ export default function LogsPage() {
 
   const [selectedLog, setSelectedLog] = useState<ParsedScanLog | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [developerMode, setDeveloperMode] = useState(false);
+
+  // Fetch developerMode on mount — same pattern as demo page
+  useEffect(() => {
+    fetch("/api/settings")
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => { if (data?.developerMode) setDeveloperMode(true); })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     async function fetchLogs() {
@@ -141,6 +150,7 @@ export default function LogsPage() {
                   <TableHead>Scenario</TableHead>
                   <TableHead>Risk</TableHead>
                   <TableHead>Status</TableHead>
+                  {developerMode && <TableHead className="text-xs text-zinc-600">Rule IDs</TableHead>}
                   <TableHead className="text-right">Action</TableHead>
                 </TableRow>
               </TableHeader>
@@ -192,6 +202,21 @@ export default function LogsPage() {
                             {log.status}
                           </Badge>
                         </TableCell>
+                        {/* Developer Mode: inline rule IDs column */}
+                        {developerMode && (
+                          <TableCell className="max-w-[180px]">
+                            <div className="flex flex-col gap-0.5">
+                              {log.detectedPatterns.slice(0, 3).map((p, i) => (
+                                <code key={i} className="text-[9px] font-mono text-zinc-600 truncate block">
+                                  {(p as { id?: string }).id ?? p.pattern}
+                                </code>
+                              ))}
+                              {log.detectedPatterns.length > 3 && (
+                                <span className="text-[9px] text-zinc-700">+{log.detectedPatterns.length - 3} more</span>
+                              )}
+                            </div>
+                          </TableCell>
+                        )}
                         <TableCell className="text-right">
                           <Dialog open={dialogOpen && selectedLog?.id === log.id} onOpenChange={(open) => {
                             if (open) setSelectedLog(log);
@@ -260,6 +285,26 @@ export default function LogsPage() {
                                       </pre>
                                     </div>
                                   </div>
+
+                                  {/* Developer Mode: raw JSON */}
+                                  {developerMode && (
+                                    <div>
+                                      <h3 className="text-sm font-medium mb-2 flex items-center gap-2">
+                                        <span className="inline-block h-2 w-2 rounded-full bg-emerald-500" />
+                                        <span className="text-muted-foreground">Raw Log Entry (Developer Mode)</span>
+                                      </h3>
+                                      <details className="group">
+                                        <summary className="text-xs text-muted-foreground cursor-pointer select-none hover:text-foreground transition-colors mb-1">
+                                          Show raw JSON
+                                          <span className="ml-1 group-open:hidden">▸</span>
+                                          <span className="ml-1 hidden group-open:inline">▾</span>
+                                        </summary>
+                                        <pre className="text-[10px] font-mono bg-muted p-3 rounded-md overflow-x-auto whitespace-pre-wrap max-h-64 border border-border/50 text-foreground">
+                                          {JSON.stringify(selectedLog, null, 2)}
+                                        </pre>
+                                      </details>
+                                    </div>
+                                  )}
 
                                 </div>
                               </DialogContent>

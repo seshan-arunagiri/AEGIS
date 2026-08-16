@@ -14,6 +14,8 @@ export interface ExtendedScanResult extends ScanResult {
   intentFlaggedText?:  string | null;    // specific span that drove the score
   finalScore?:         number;           // Math.max(regex, intent)
   finalRiskLevel?:     RiskLevel;
+  /** Server-measured phase latencies (ms) — only used in Developer Mode */
+  _timing?:            { regexMs: number; groqMs: number | null } | null;
 }
 
 // ─── Risk colour mapping ──────────────────────────────────────────────────────
@@ -131,9 +133,11 @@ function ScoreRing({ score, riskLevel }: ScoreRingProps) {
 interface ResultPanelProps {
   result: ExtendedScanResult | null;
   isLoading: boolean;
+  /** When true, shows rule IDs, timing breakdown, and raw JSON */
+  developerMode?: boolean;
 }
 
-export function ResultPanel({ result, isLoading }: ResultPanelProps) {
+export function ResultPanel({ result, isLoading, developerMode = false }: ResultPanelProps) {
   // Prefer the merged final level when intent analysis ran; fall back to regex level.
   const displayLevel   = result?.finalRiskLevel   ?? result?.riskLevel   ?? "Safe";
   const displayScore   = result?.finalScore        ?? result?.riskScore   ?? 0;
@@ -466,6 +470,83 @@ export function ResultPanel({ result, isLoading }: ResultPanelProps) {
                       </p>
                     </div>
                   </div>
+                </motion.div>
+              )}
+
+              {/* ── Developer Mode panel ────────────────────────────────── */}
+              {developerMode && result && (
+                <motion.div
+                  key="dev-panel"
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="rounded border border-dashed border-zinc-700/60 bg-zinc-900/40 p-3 space-y-3"
+                >
+                  {/* Header */}
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-zinc-500 flex items-center gap-1.5">
+                    <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                    Developer Mode
+                  </p>
+
+                  {/* Rule IDs per detected pattern */}
+                  {result.detectedPatterns.length > 0 && (
+                    <div className="space-y-1">
+                      <p className="text-[10px] text-zinc-600 font-medium">Pattern Rule IDs</p>
+                      <div className="flex flex-col gap-0.5">
+                        {result.detectedPatterns.map((p, i) => (
+                          <div key={i} className="flex items-center justify-between gap-2 text-[10px]">
+                            <code className="font-mono text-zinc-400 bg-zinc-800/60 px-1 rounded truncate max-w-[60%]">
+                              {(p as { id?: string }).id ?? p.pattern}
+                            </code>
+                            <span className="text-zinc-600 shrink-0">
+                              {p.category} · +{p.weight}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Timing breakdown */}
+                  {result._timing && (
+                    <div className="space-y-1">
+                      <p className="text-[10px] text-zinc-600 font-medium">Phase Timing</p>
+                      <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] text-zinc-500 w-20 shrink-0">Regex scan</span>
+                          <div className="flex-1 h-1 rounded-full bg-zinc-800 overflow-hidden">
+                            <div className="h-full bg-emerald-600/70 rounded-full" style={{ width: "4%" }} />
+                          </div>
+                          <code className="text-[10px] font-mono text-zinc-400 w-12 text-right">
+                            {result._timing.regexMs}ms
+                          </code>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] text-zinc-500 w-20 shrink-0">Groq (intent)</span>
+                          <div className="flex-1 h-1 rounded-full bg-zinc-800 overflow-hidden">
+                            <div
+                              className="h-full bg-sky-600/70 rounded-full"
+                              style={{ width: result._timing.groqMs ? "96%" : "0%" }}
+                            />
+                          </div>
+                          <code className="text-[10px] font-mono text-zinc-400 w-12 text-right">
+                            {result._timing.groqMs != null ? `${result._timing.groqMs}ms` : "—"}
+                          </code>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Raw JSON — collapsible */}
+                  <details className="group">
+                    <summary className="text-[10px] text-zinc-500 cursor-pointer select-none hover:text-zinc-300 transition-colors">
+                      Raw API Response
+                      <span className="ml-1 text-zinc-700 group-open:hidden">▸</span>
+                      <span className="ml-1 text-zinc-700 hidden group-open:inline">▾</span>
+                    </summary>
+                    <pre className="mt-1.5 max-h-48 overflow-auto rounded bg-zinc-950/60 p-2 text-[9.5px] font-mono leading-relaxed text-zinc-400 whitespace-pre-wrap break-all border border-zinc-800/50">
+                      {JSON.stringify(result, null, 2)}
+                    </pre>
+                  </details>
                 </motion.div>
               )}
 

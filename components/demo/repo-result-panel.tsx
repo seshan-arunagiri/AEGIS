@@ -24,6 +24,8 @@ interface RepoScanResultWithIntent extends Omit<RepoScanResult, "files"> {
 interface RepoResultPanelProps {
   result: RepoScanResultWithIntent | null;
   isLoading: boolean;
+  /** When true, shows rule IDs and raw JSON per file */
+  developerMode?: boolean;
 }
 
 function getRiskColor(level: RiskLevel): string {
@@ -39,7 +41,7 @@ function getRiskColor(level: RiskLevel): string {
   }
 }
 
-export function RepoResultPanel({ result, isLoading }: RepoResultPanelProps) {
+export function RepoResultPanel({ result, isLoading, developerMode = false }: RepoResultPanelProps) {
   const [expandedFile, setExpandedFile] = useState<string | null>(null);
 
   if (isLoading) {
@@ -265,6 +267,39 @@ export function RepoResultPanel({ result, isLoading }: RepoResultPanelProps) {
                            </div>
                          ) : (
                            <p className="text-xs text-zinc-600">No threats detected in this file</p>
+                         )}
+
+                         {/* ── Developer Mode ─────────────────────────── */}
+                         {developerMode && (
+                           <div className="rounded border border-dashed border-zinc-700/60 bg-zinc-900/40 p-2 space-y-2 mt-1">
+                             <p className="text-[10px] font-semibold uppercase tracking-widest text-zinc-500 flex items-center gap-1">
+                               <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                               Dev Mode
+                             </p>
+                             {file.detectedPatterns.length > 0 && (
+                               <div className="space-y-0.5">
+                                 <p className="text-[10px] text-zinc-600 font-medium">Rule IDs</p>
+                                 {file.detectedPatterns.map((p, pi) => (
+                                   <div key={pi} className="flex items-center justify-between gap-2 text-[10px]">
+                                     <code className="font-mono text-zinc-400 bg-zinc-800/60 px-1 rounded truncate max-w-[65%]">
+                                       {(p as { id?: string }).id ?? p.pattern}
+                                     </code>
+                                     <span className="text-zinc-600 shrink-0">{p.category} · +{p.weight}</span>
+                                   </div>
+                                 ))}
+                               </div>
+                             )}
+                             <details className="group">
+                               <summary className="text-[10px] text-zinc-500 cursor-pointer select-none hover:text-zinc-300 transition-colors">
+                                 Raw file object
+                                 <span className="ml-1 text-zinc-700 group-open:hidden">▸</span>
+                                 <span className="ml-1 text-zinc-700 hidden group-open:inline">▾</span>
+                               </summary>
+                               <pre className="mt-1 max-h-36 overflow-auto rounded bg-zinc-950/60 p-1.5 text-[9px] font-mono leading-relaxed text-zinc-400 whitespace-pre-wrap break-all border border-zinc-800/50">
+                                 {JSON.stringify(file, null, 2)}
+                               </pre>
+                             </details>
+                           </div>
                          )}
                        </div>
                     </motion.div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Navbar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
@@ -45,6 +45,16 @@ export default function DemoPage() {
   const [repoUrl, setRepoUrl] = useState<string>("");
   const [pasteContent, setPasteContent] = useState<string>("");
   const [scanDuration, setScanDuration] = useState<number | null>(null);
+  const [developerMode, setDeveloperMode] = useState(false);
+
+  // Fetch developerMode setting once on mount — same pattern as settings page.
+  // Defaults to false on any error so the clean UI is unaffected for normal users.
+  useEffect(() => {
+    fetch("/api/settings")
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => { if (data?.developerMode) setDeveloperMode(true); })
+      .catch(() => {});
+  }, []);
 
   // Reset results when tool or scenario changes
   const handleToolChange = useCallback((t: DemoTool) => {
@@ -354,6 +364,7 @@ export default function DemoPage() {
                 <RepoResultPanel
                   result={scanState.repoResult}
                   isLoading={isLoading}
+                  developerMode={developerMode}
                 />
               </div>
             </section>
@@ -383,6 +394,7 @@ export default function DemoPage() {
                   <ResultPanel
                     result={scanState.result}
                     isLoading={isLoading}
+                    developerMode={developerMode}
                   />
                 </div>
               </section>

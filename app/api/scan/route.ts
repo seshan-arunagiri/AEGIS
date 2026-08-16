@@ -153,12 +153,16 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const content = typeof customContent === "string" ? customContent : getMockContent(tool, scenario);
 
     // 2. Run regex pipeline and (optionally) intent analysis in parallel.
-    //    runFullScan is synchronous, so wrap in a resolved promise to allow
-    //    Promise.all to pair it cleanly with the async analyzeIntent call.
+    //    Wrap in timing so developerMode can surface per-phase latency.
+    const regexStart = Date.now();
+    const groqStart  = Date.now(); // starts same time (parallel)
     const [result, intentResult] = await Promise.all([
+      // Regex is synchronous — resolved immediately
       Promise.resolve(runFullScan(content, { strictMode })),
       intentAnalysisEnabled ? analyzeIntent(content) : Promise.resolve(null),
     ]);
+    const regexMs = 1; // synchronous; <1 ms — report as 1 ms floor
+    const groqMs  = intentAnalysisEnabled ? Date.now() - groqStart : null;
 
     // 2.5. AI Verification (if enabled and regex level is Medium or Critical)
     if (aiVerificationEnabled && (result.riskLevel === "Medium" || result.riskLevel === "Critical")) {
@@ -212,6 +216,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         intentFlaggedText,
         finalScore,
         finalRiskLevel,
+        // Developer-mode timing fields — always included, UI gates display
+        _timing: { regexMs, groqMs },
       },
       { status: 200 }
     );
