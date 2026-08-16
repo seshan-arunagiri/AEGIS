@@ -1,6 +1,16 @@
 <div align="center">
-  <h1>🛡️ Aegis</h1>
-  <p><strong>Security middleware for AI agents, protecting against MCP tool poisoning and prompt injection attacks.</strong></p>
+```text
+ █████╗ ███████╗ ██████╗ ██╗███████╗
+██╔══██╗██╔════╝██╔════╝ ██║██╔════╝
+███████║█████╗  ██║  ███╗██║███████╗
+██╔══██║██╔══╝  ██║   ██║██║╚════██║
+██║  ██║███████╗╚██████╔╝██║███████║
+╚═╝  ╚═╝╚══════╝ ╚═════╝ ╚═╝╚══════╝
+```
+
+<h3>Enterprise-Grade Security Middleware for AI Agents</h3>
+
+**Fast • Dual-Layer • Adversarially Hardened**
 
   <p>
     <img src="https://img.shields.io/badge/Next.js-16.2.10-black?logo=next.js" alt="Next.js" />
