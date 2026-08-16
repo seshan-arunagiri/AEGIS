@@ -20,7 +20,7 @@ export function Navbar() {
       <header className="fixed top-0 left-0 right-0 z-50 border-b border-white/[0.06] bg-[#0A0A0A]/80 backdrop-blur-md">
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-6">
 
-          {/* Logo */}
+          {/* Logo — explicitly links back to the landing page */}
           <Link href="/" className="flex items-center gap-2.5 group" id="nav-logo">
             <div className="flex h-7 w-7 items-center justify-center rounded-md border border-white/10 bg-white/5 transition-colors group-hover:border-white/20 group-hover:bg-white/10">
               <svg
