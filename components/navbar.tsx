@@ -20,30 +20,45 @@ export function Navbar() {
       <header className="fixed top-0 left-0 right-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-md">
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-6">
 
-          {/* Logo — explicitly links back to the landing page */}
-          <Link href="/" className="flex items-center gap-2.5 group" id="nav-logo">
-            <div className="flex h-7 w-7 items-center justify-center rounded-md border border-border/50 bg-muted/50 transition-colors group-hover:border-border group-hover:bg-muted">
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 14 14"
-                fill="none"
-                aria-hidden="true"
+          {/* Left section: Optional Back Button + Logo */}
+          <div className="flex items-center gap-3">
+            {pathname === "/demo" && (
+              <Link
+                href="/"
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-muted/50 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground border border-transparent hover:border-border"
+                aria-label="Back to landing page"
               >
-                <path
-                  d="M7 1L12.196 4V10L7 13L1.804 10V4L7 1Z"
-                  stroke="currentColor"
-                  strokeWidth="1.2"
-                  strokeLinejoin="round"
-                  className="text-foreground"
-                />
-                <circle cx="7" cy="7" r="1.5" fill="currentColor" className="text-foreground" />
-              </svg>
-            </div>
-            <span className="text-sm font-semibold tracking-tight text-foreground transition-opacity group-hover:opacity-90">
-              Aegis
-            </span>
-          </Link>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M19 12H5M12 19l-7-7 7-7" />
+                </svg>
+              </Link>
+            )}
+            
+            {/* Logo — explicitly links back to the landing page */}
+            <Link href="/" className="flex items-center gap-2.5 group" id="nav-logo">
+              <div className="flex h-7 w-7 items-center justify-center rounded-md border border-border/50 bg-muted/50 transition-colors group-hover:border-border group-hover:bg-muted">
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 14 14"
+                  fill="none"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M7 1L12.196 4V10L7 13L1.804 10V4L7 1Z"
+                    stroke="currentColor"
+                    strokeWidth="1.2"
+                    strokeLinejoin="round"
+                    className="text-foreground"
+                  />
+                  <circle cx="7" cy="7" r="1.5" fill="currentColor" className="text-foreground" />
+                </svg>
+              </div>
+              <span className="text-sm font-semibold tracking-tight text-foreground transition-opacity group-hover:opacity-90">
+                Aegis
+              </span>
+            </Link>
+          </div>
 
           {/* Desktop nav links — sourced from lib/navigation.ts */}
           <nav className="hidden items-center gap-1 md:flex" aria-label="Main navigation">
