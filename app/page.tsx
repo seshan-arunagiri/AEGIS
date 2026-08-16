@@ -99,9 +99,9 @@ export default function LandingPage() {
           />
 
           {/* Status badge */}
-          <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3.5 py-1.5 backdrop-blur-sm">
+          <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-border bg-card px-3.5 py-1.5 backdrop-blur-sm">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" aria-hidden="true" />
-            <span className="text-xs font-medium tracking-wide text-zinc-400">
+            <span className="text-xs font-medium tracking-wide text-muted-foreground">
               Early Access — Work in Progress
             </span>
           </div>
@@ -109,13 +109,13 @@ export default function LandingPage() {
           {/* Headline */}
           <h1
             id="hero-headline"
-            className="mx-auto max-w-4xl text-balance text-4xl font-extrabold leading-[1.1] tracking-tight text-white sm:text-5xl lg:text-7xl"
+            className="mx-auto max-w-4xl text-balance text-4xl font-extrabold leading-[1.1] tracking-tight text-foreground sm:text-5xl lg:text-7xl"
           >
             Protecting AI Agents from Tool Poisoning &amp; Prompt Injection
           </h1>
 
           {/* Subtext */}
-          <p className="mx-auto mt-6 max-w-xl text-balance text-base leading-relaxed text-zinc-400 sm:text-lg">
+          <p className="mx-auto mt-6 max-w-xl text-balance text-base leading-relaxed text-muted-foreground sm:text-lg">
             Aegis sits between your AI agent and the MCP tool layer —
             scanning, scoring, and sanitizing every interaction before it
             reaches your model.
@@ -135,7 +135,7 @@ export default function LandingPage() {
               <Button
                 variant="ghost"
                 size="lg"
-                className="h-11 rounded-xl px-6 text-sm font-medium text-zinc-500 hover:bg-white/5 hover:text-white transition-colors"
+                className="h-11 rounded-xl px-6 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
               >
                 See how it works
               </Button>
@@ -147,7 +147,7 @@ export default function LandingPage() {
             {trustBadges.map((badge) => (
               <span
                 key={badge}
-                className="flex items-center gap-1.5 text-xs text-zinc-600"
+                className="flex items-center gap-1.5 text-xs text-muted-foreground"
               >
                 <svg
                   width="12"
@@ -162,7 +162,7 @@ export default function LandingPage() {
                     strokeWidth="1.5"
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    className="text-zinc-500"
+                    className="text-muted-foreground"
                   />
                 </svg>
                 {badge}
@@ -173,7 +173,7 @@ export default function LandingPage() {
           {/* Divider fade */}
           <div
             aria-hidden="true"
-            className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent"
+            className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border to-transparent"
           />
         </section>
 
@@ -186,16 +186,16 @@ export default function LandingPage() {
           <div className="mb-16 text-center">
             <h2
               id="features-heading"
-              className="text-3xl font-bold tracking-tight text-white sm:text-4xl"
+              className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl"
             >
               Everything your agents need to stay safe
             </h2>
-            <p className="mt-3 text-sm text-zinc-500">
+            <p className="mt-3 text-sm text-muted-foreground">
               A complete middleware stack, from ingestion to audit.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 gap-px rounded-2xl border border-white/[0.06] bg-white/[0.04] sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-px rounded-2xl border border-border bg-card sm:grid-cols-2">
             {features.map((feature, index) => (
               <div
                 key={feature.id}
@@ -206,19 +206,19 @@ export default function LandingPage() {
                   index === 1 && "rounded-tr-2xl",
                   index === features.length - 2 && "rounded-bl-2xl sm:rounded-bl-2xl",
                   index === features.length - 1 && "rounded-br-2xl",
-                  "bg-background transition-all duration-200 hover:bg-white/[0.02] hover:border-primary/20",
+                  "bg-background transition-all duration-200 hover:bg-muted hover:border-primary/20",
                 ]
                   .filter(Boolean)
                   .join(" ")}
               >
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-white/[0.04] text-zinc-400">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-muted text-muted-foreground">
                   {feature.icon}
                 </div>
                 <div>
-                  <h3 className="text-sm font-semibold text-white">
+                  <h3 className="text-sm font-semibold text-foreground">
                     {feature.title}
                   </h3>
-                  <p className="mt-1.5 text-sm leading-relaxed text-zinc-500">
+                  <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
                     {feature.description}
                   </p>
                 </div>
@@ -231,16 +231,16 @@ export default function LandingPage() {
         <section
           id="cta-banner"
           aria-labelledby="cta-heading"
-          className="border-t border-white/[0.06] px-6 py-32 bg-[radial-gradient(ellipse_at_bottom,_var(--tw-gradient-stops))] from-emerald-900/10 via-background to-background"
+          className="border-t border-border px-6 py-32 bg-[radial-gradient(ellipse_at_bottom,_var(--tw-gradient-stops))] from-emerald-900/10 via-background to-background"
         >
           <div className="mx-auto max-w-2xl text-center">
             <h2
               id="cta-heading"
-              className="text-3xl font-bold tracking-tight text-white sm:text-4xl"
+              className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl"
             >
               Ready to secure your agents?
             </h2>
-            <p className="mt-4 text-base leading-relaxed text-zinc-400">
+            <p className="mt-4 text-base leading-relaxed text-muted-foreground">
               Run the live demo and see Aegis intercept real threats in
               your MCP environment.
             </p>
