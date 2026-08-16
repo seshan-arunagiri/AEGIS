@@ -1,16 +1,14 @@
 <div align="center">
-```text
+<pre>
  █████╗ ███████╗ ██████╗ ██╗███████╗
 ██╔══██╗██╔════╝██╔════╝ ██║██╔════╝
 ███████║█████╗  ██║  ███╗██║███████╗
 ██╔══██║██╔══╝  ██║   ██║██║╚════██║
 ██║  ██║███████╗╚██████╔╝██║███████║
 ╚═╝  ╚═╝╚══════╝ ╚═════╝ ╚═╝╚══════╝
-```
+</pre>
 
-<h3>Enterprise-Grade Security Middleware for AI Agents</h3>
-
-**Fast • Dual-Layer • Adversarially Hardened**
+<p><strong>Fast • Dual-Layer • Adversarially Hardened</strong></p>
 
   <p>
     <img src="https://img.shields.io/badge/Next.js-16.2.10-black?logo=next.js" alt="Next.js" />
