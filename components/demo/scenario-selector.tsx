@@ -47,7 +47,7 @@ export function ScenarioSelector({ selected, onChange }: ScenarioSelectorProps) 
               "group flex flex-col items-start gap-1.5 rounded-xl border p-3.5 text-left transition-all duration-150",
               isSelected
                 ? cn(styles.active, "border-opacity-100")
-                : "border-white/[0.06] bg-white/[0.02] text-zinc-500 hover:border-white/10 hover:bg-white/[0.04] hover:text-zinc-300"
+                : "border-border bg-muted text-muted-foreground hover:border-border/80 hover:bg-accent hover:text-foreground dark:border-white/[0.06] dark:bg-white/[0.02] dark:text-zinc-500 dark:hover:border-white/10 dark:hover:bg-white/[0.04] dark:hover:text-zinc-300"
             )}
           >
             <div className="flex items-center gap-1.5">

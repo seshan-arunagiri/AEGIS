@@ -50,7 +50,7 @@ interface ToolSelectorProps {
 
 export function ToolSelector({ selected, onChange }: ToolSelectorProps) {
   return (
-    <div role="group" aria-label="Select MCP tool" className="flex items-center gap-1 rounded-xl border border-white/[0.07] bg-white/[0.03] p-1">
+    <div role="group" aria-label="Select MCP tool" className="flex items-center gap-1 rounded-xl border border-border bg-muted dark:border-white/[0.07] dark:bg-white/[0.03] p-1">
       {TOOLS.map((tool) => {
         const isSelected = tool.id === selected;
         return (
@@ -63,11 +63,11 @@ export function ToolSelector({ selected, onChange }: ToolSelectorProps) {
             className={cn(
               "flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all duration-150",
               isSelected
-                ? "bg-white text-black shadow-sm"
-                : "text-zinc-500 hover:bg-white/5 hover:text-zinc-300"
+                ? "bg-background text-foreground shadow-sm border border-border dark:bg-white dark:text-black dark:border-transparent"
+                : "text-muted-foreground hover:bg-accent hover:text-foreground dark:text-zinc-500 dark:hover:bg-white/5 dark:hover:text-zinc-300"
             )}
           >
-            <span className={cn(isSelected ? "text-black" : "text-zinc-500")}>
+            <span className={cn(isSelected ? "text-foreground dark:text-black" : "text-muted-foreground dark:text-zinc-500")}>
               {ICONS[tool.icon]}
             </span>
             {tool.label}

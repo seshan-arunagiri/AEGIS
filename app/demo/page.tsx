@@ -147,7 +147,7 @@ export default function DemoPage() {
           
           <div className="mx-auto max-w-6xl relative z-10">
             <div className="flex items-center gap-2 mb-1">
-              <span className="rounded border border-white/10 bg-white/[0.04] px-2 py-0.5 font-mono text-[10px] text-zinc-500 tracking-widest">
+              <span className="rounded border border-border bg-muted dark:border-white/10 dark:bg-white/[0.04] px-2 py-0.5 font-mono text-[10px] text-emerald-700 dark:text-zinc-500 font-bold tracking-[0.15em]">
                 INTERACTIVE DEMO
               </span>
             </div>
@@ -173,7 +173,7 @@ export default function DemoPage() {
               <button
                 onClick={() => setInputMode("mock")}
                 className={`px-4 py-1.5 text-xs font-medium rounded-full transition-colors ${
-                  inputMode === "mock" ? "bg-white text-black" : "bg-white/5 text-zinc-400 hover:bg-white/10"
+                  inputMode === "mock" ? "bg-zinc-900 text-white shadow-sm dark:bg-white dark:text-black" : "bg-muted text-muted-foreground hover:bg-accent dark:bg-white/5 dark:text-zinc-400 dark:hover:bg-white/10"
                 }`}
               >
                 Mock Scenario
@@ -181,7 +181,7 @@ export default function DemoPage() {
               <button
                 onClick={() => setInputMode("upload")}
                 className={`px-4 py-1.5 text-xs font-medium rounded-full transition-colors ${
-                  inputMode === "upload" ? "bg-white text-black" : "bg-white/5 text-zinc-400 hover:bg-white/10"
+                  inputMode === "upload" ? "bg-zinc-900 text-white shadow-sm dark:bg-white dark:text-black" : "bg-muted text-muted-foreground hover:bg-accent dark:bg-white/5 dark:text-zinc-400 dark:hover:bg-white/10"
                 }`}
               >
                 File Upload
@@ -189,7 +189,7 @@ export default function DemoPage() {
               <button
                 onClick={() => setInputMode("github")}
                 className={`px-4 py-1.5 text-xs font-medium rounded-full transition-colors ${
-                  inputMode === "github" ? "bg-white text-black" : "bg-white/5 text-zinc-400 hover:bg-white/10"
+                  inputMode === "github" ? "bg-zinc-900 text-white shadow-sm dark:bg-white dark:text-black" : "bg-muted text-muted-foreground hover:bg-accent dark:bg-white/5 dark:text-zinc-400 dark:hover:bg-white/10"
                 }`}
               >
                 GitHub Repo
@@ -197,7 +197,7 @@ export default function DemoPage() {
               <button
                 onClick={() => setInputMode("paste")}
                 className={`px-4 py-1.5 text-xs font-medium rounded-full transition-colors ${
-                  inputMode === "paste" ? "bg-white text-black" : "bg-white/5 text-zinc-400 hover:bg-white/10"
+                  inputMode === "paste" ? "bg-zinc-900 text-white shadow-sm dark:bg-white dark:text-black" : "bg-muted text-muted-foreground hover:bg-accent dark:bg-white/5 dark:text-zinc-400 dark:hover:bg-white/10"
                 }`}
               >
                 Paste Text
@@ -207,13 +207,13 @@ export default function DemoPage() {
             {inputMode === "mock" && (
               <div className="flex gap-8">
                 <div>
-                  <label className="mb-2 block text-[11px] font-semibold uppercase tracking-widest text-zinc-600">
+                  <label className="mb-2 block text-[11px] font-bold uppercase tracking-[0.15em] text-emerald-700 dark:text-zinc-600">
                     MCP Tool
                   </label>
                   <ToolSelector selected={tool} onChange={handleToolChange} />
                 </div>
                 <div>
-                  <label className="mb-2 block text-[11px] font-semibold uppercase tracking-widest text-zinc-600">
+                  <label className="mb-2 block text-[11px] font-bold uppercase tracking-[0.15em] text-emerald-700 dark:text-zinc-600">
                     Attack Scenario
                   </label>
                   <ScenarioSelector selected={scenario} onChange={handleScenarioChange} />
@@ -223,7 +223,7 @@ export default function DemoPage() {
 
             {inputMode === "upload" && (
               <div>
-                <label className="mb-2 block text-[11px] font-semibold uppercase tracking-widest text-zinc-600">
+                <label className="mb-2 block text-[11px] font-bold uppercase tracking-[0.15em] text-emerald-700 dark:text-zinc-600">
                   Upload File (.md, .txt, .json)
                 </label>
                 <input
@@ -243,7 +243,7 @@ export default function DemoPage() {
 
             {inputMode === "github" && (
               <div>
-                <label className="mb-2 block text-[11px] font-semibold uppercase tracking-widest text-zinc-600">
+                <label className="mb-2 block text-[11px] font-bold uppercase tracking-[0.15em] text-emerald-700 dark:text-zinc-600">
                   Public GitHub Repo URL
                 </label>
                 <div className="flex flex-col gap-1 max-w-sm">
@@ -264,7 +264,7 @@ export default function DemoPage() {
 
             {inputMode === "paste" && (
               <div className="w-full">
-                <label className="mb-2 block text-[11px] font-semibold uppercase tracking-widest text-zinc-600">
+                <label className="mb-2 block text-[11px] font-bold uppercase tracking-[0.15em] text-emerald-700 dark:text-zinc-600">
                   Raw Text Input
                 </label>
                 <textarea
@@ -291,7 +291,7 @@ export default function DemoPage() {
                 type="button"
                 onClick={handleRunScan}
                 disabled={isLoading || (inputMode === "paste" && !pasteContent.trim())}
-                className="group flex items-center gap-2.5 rounded-xl bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground shadow-[0_0_20px_rgba(16,185,129,0.15)] transition-all duration-200 hover:bg-emerald-500 hover:shadow-[0_0_25px_rgba(16,185,129,0.3)] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-primary disabled:hover:shadow-none"
+                className="group flex items-center gap-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 px-6 py-2.5 text-sm font-semibold text-primary-foreground shadow-md transition-all duration-200 hover:from-emerald-500 hover:to-emerald-400 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:from-emerald-600 disabled:hover:to-emerald-500 disabled:hover:shadow-md"
               >
                 {isLoading ? (
                   <>
@@ -357,7 +357,7 @@ export default function DemoPage() {
           {inputMode === "github" && scanState.repoResult ? (
             // Full-width repo result for GitHub scans
             <section aria-labelledby="repo-result-heading" className="flex flex-col">
-              <h2 id="repo-result-heading" className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-zinc-600">
+              <h2 id="repo-result-heading" className="mb-2 text-[11px] font-bold uppercase tracking-[0.15em] text-emerald-700 dark:text-zinc-600">
                 Repository Scan Results
               </h2>
               <div className="min-h-[520px] max-h-[600px] overflow-hidden">
@@ -373,7 +373,7 @@ export default function DemoPage() {
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
               {/* Left — Raw tool response */}
               <section aria-labelledby="response-panel-heading" className="flex flex-col">
-                <h2 id="response-panel-heading" className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-zinc-600">
+                <h2 id="response-panel-heading" className="mb-2 text-[11px] font-bold uppercase tracking-[0.15em] text-emerald-700 dark:text-zinc-600">
                   Incoming Tool Response
                 </h2>
                 <div className="min-h-[420px] max-h-[560px] lg:h-[520px] overflow-hidden">
@@ -387,7 +387,7 @@ export default function DemoPage() {
 
               {/* Right — Scan result */}
               <section aria-labelledby="result-panel-heading" className="flex flex-col">
-                <h2 id="result-panel-heading" className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-zinc-600">
+                <h2 id="result-panel-heading" className="mb-2 text-[11px] font-bold uppercase tracking-[0.15em] text-emerald-700 dark:text-zinc-600">
                   Aegis Analysis
                 </h2>
                 <div className="min-h-[420px] max-h-[560px] lg:h-[520px] overflow-hidden">
@@ -405,7 +405,7 @@ export default function DemoPage() {
         {/* ── How it works strip ───────────────────────────────────────── */}
         <div className="border-t border-white/[0.06] px-6 py-8">
           <div className="mx-auto max-w-6xl">
-            <p className="mb-4 text-[11px] font-semibold uppercase tracking-widest text-zinc-600">
+            <p className="mb-4 text-[11px] font-bold uppercase tracking-[0.15em] text-emerald-700 dark:text-zinc-600">
               How it works
             </p>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:gap-0">
