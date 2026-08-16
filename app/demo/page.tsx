@@ -151,7 +151,7 @@ export default function DemoPage() {
                 INTERACTIVE DEMO
               </span>
             </div>
-            <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">
+            <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-white sm:text-3xl">
               Live Threat Scanner
             </h1>
             <p className="mt-2 text-base text-zinc-400">

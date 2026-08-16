@@ -109,7 +109,7 @@ export default function LandingPage() {
           {/* Headline */}
           <h1
             id="hero-headline"
-            className="mx-auto max-w-4xl text-balance text-4xl font-extrabold leading-[1.1] tracking-tight text-foreground sm:text-5xl lg:text-7xl"
+            className="mx-auto max-w-4xl text-balance text-4xl font-extrabold leading-[1.1] tracking-tight text-zinc-900 dark:text-white sm:text-5xl lg:text-7xl"
           >
             Protecting AI Agents from Tool Poisoning &amp; Prompt Injection
           </h1>
