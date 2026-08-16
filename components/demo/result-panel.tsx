@@ -156,9 +156,9 @@ export function ResultPanel({ result, isLoading, developerMode = false }: Result
   const isBlocked = displayLevel === "Medium" || displayLevel === "Critical";
 
   return (
-    <div className="flex h-full flex-col rounded-xl border border-white/[0.07] bg-white/[0.02] overflow-hidden">
+    <div className="flex h-full flex-col rounded-xl border border-border bg-card shadow-sm dark:border-white/[0.07] dark:bg-white/[0.02] overflow-hidden">
       {/* Header */}
-      <div className="flex shrink-0 items-center justify-between border-b border-white/[0.06] px-4 py-3">
+      <div className="flex shrink-0 items-center justify-between border-b border-border bg-muted dark:border-white/[0.06] dark:bg-transparent px-4 py-3">
         <div className="flex items-center gap-2">
           <span className="flex h-5 w-5 items-center justify-center">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-500" aria-hidden="true">
@@ -167,7 +167,7 @@ export function ResultPanel({ result, isLoading, developerMode = false }: Result
           </span>
           <span className="text-xs font-medium text-zinc-500">Aegis Analysis</span>
         </div>
-        <span className="rounded border border-white/[0.06] bg-white/[0.03] px-2 py-0.5 font-mono text-[10px] text-zinc-600">
+        <span className="rounded border border-border bg-card dark:border-white/[0.06] dark:bg-white/[0.03] px-2 py-0.5 font-mono text-[10px] text-emerald-700 dark:text-zinc-600 font-bold tracking-[0.15em]">
           SCAN RESULT
         </span>
       </div>
@@ -564,7 +564,7 @@ export function ResultPanel({ result, isLoading, developerMode = false }: Result
         ) : (
           // Empty state
           <div className="flex h-full flex-col items-center justify-center gap-3 py-12 text-center">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full border border-white/[0.06] bg-white/[0.02]">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full border border-border bg-muted dark:border-white/[0.06] dark:bg-white/[0.02]">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-700" aria-hidden="true">
                 <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
               </svg>
